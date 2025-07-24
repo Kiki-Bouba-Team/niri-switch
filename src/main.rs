@@ -1,5 +1,5 @@
 use niri_ipc::{
-    Reply, Request, Response, Window,
+    Action, Reply, Request, Response, Window,
     socket::{self, Socket},
 };
 use std::{io, process};
@@ -9,7 +9,7 @@ fn unwrap_send_result(send_result: io::Result<Reply>) -> Option<Response> {
         Ok(response) => response,
         Err(error) => {
             eprintln!("Failed to send request: {error:?}");
-            return None;
+            return None
         }
     };
 
@@ -17,7 +17,7 @@ fn unwrap_send_result(send_result: io::Result<Reply>) -> Option<Response> {
         Ok(response) => response,
         Err(error) => {
             eprintln!("Error response from niri: {error:?}");
-            return None;
+            return None
         }
     };
 
@@ -31,7 +31,7 @@ fn get_focused_window(socket: &mut Socket) -> Option<Window> {
     let response = unwrap_send_result(send_result);
 
     if let Some(Response::FocusedWindow(window)) = response {
-        return window;
+        return window
     }
 
     None
@@ -45,7 +45,7 @@ fn list_workspace_windows(workspace_id: u64, socket: &mut Socket) -> Vec<Window>
 
     let is_window_from_workspace = |window: &Window| -> bool {
         if let Some(id) = window.workspace_id {
-            return id == workspace_id;
+            return id == workspace_id
         };
         return false;
     };
@@ -54,12 +54,25 @@ fn list_workspace_windows(workspace_id: u64, socket: &mut Socket) -> Vec<Window>
         return windows
             .into_iter()
             .filter(is_window_from_workspace)
-            .collect();
+            .collect()
     }
 
     /* No windows in the workspace. Return empty vector for easier usability
      * of this function */
     Vec::new()
+}
+
+fn change_focused_window(new_window_id: u64, socket: &mut Socket) -> bool {
+    let request = Request::Action(Action::FocusWindow { id: new_window_id });
+    let send_result = socket.send(request);
+
+    let response = unwrap_send_result(send_result);
+
+    if let Some(Response::Handled) = response {
+        return true
+    };
+
+    return false;
 }
 
 fn main() {
@@ -74,7 +87,7 @@ fn main() {
         }
     };
 
-    /* Get currently focused window - this will be used for determine
+    /* Get currently focused window - this will be used to determine
      * which workspace we should be operating on */
     let focused_window = get_focused_window(&mut connected_socket);
     let focused_window = match focused_window {
@@ -98,6 +111,19 @@ fn main() {
     for window in windows {
         let window_id = window.id;
         let window_name = window.title.unwrap_or_default();
-        println!("Window {window_id}: {window_name}");
+        println!("Window {window_id}: {window_name}")
     }
+
+    println!("Choose a window id: ");
+
+    let mut buffer = String::new();
+    io::stdin().read_line(&mut buffer).unwrap();
+    let id: u64 = buffer.trim().parse().unwrap();
+
+    if !change_focused_window(id, &mut connected_socket) {
+        eprintln!("Unable to change focused window");
+        process::exit(1)
+    }
+
+    process::exit(0)
 }

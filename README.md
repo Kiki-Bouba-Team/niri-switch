@@ -5,7 +5,7 @@ Niri-switch implements faster task switching for Niri compositor. It's meant to 
 ## Todo
 
 - List all windows from workspace (**DONE**)
-- Change focus to chosen window
+- Change focus to chosen window (**DONE**)
 - GUI for selecting the focused window
 - Order windows by the time it was last focused
 - Allow for GUI customization
