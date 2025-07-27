@@ -1,6 +1,6 @@
+use glib::Properties;
 use glib::prelude::*;
 use glib::subclass::prelude::*;
-use glib::Properties;
 use std::cell::RefCell;
 
 /* This file defines glib object for holding information
@@ -17,7 +17,7 @@ mod imp {
         id: RefCell<u64>,
 
         #[property(get, set)]
-        app_id: RefCell<String>
+        app_id: RefCell<String>,
     }
 
     #[glib::derived_properties]

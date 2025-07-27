@@ -20,7 +20,7 @@ fn create_window_info_model(windows: &Vec<niri_ipc::Window>) -> gtk4::SingleSele
     gtk4::SingleSelection::new(Some(model))
 }
 
-/* Creates a gtk widget factory for displaying window information */
+/// Creates a gtk widget factory for displaying window information.
 fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
     /* GTK factory is an object responsible for producing widgets and binding
      * data from the model */
@@ -52,7 +52,7 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
 fn activate(application: &gtk4::Application, windows: &Vec<niri_ipc::Window>) {
     let window = gtk4::ApplicationWindow::new(application);
 
-    /* Move this window to the shell layer, this allows to escape Niri
+    /* Move this window to the shell layer, this allows to escape Niri compositor
      * and display window on top of everything else */
     window.init_layer_shell();
     window.set_layer(gtk4_layer_shell::Layer::Overlay);
@@ -70,7 +70,10 @@ fn activate(application: &gtk4::Application, windows: &Vec<niri_ipc::Window>) {
      * ownership of the captured variables and would otherwise move out the `window`
      * reference and disallow further access to it from this function */
     let window_ref = window.clone();
-    grid_view.connect_activate(move |_,_| { window_ref.close(); });
+    grid_view.connect_activate(move |_, _| {
+        /* TODO: focus to selected window */
+        window_ref.close();
+    });
 
     window.set_child(Some(&grid_view));
 
