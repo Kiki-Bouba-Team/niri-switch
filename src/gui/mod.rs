@@ -1,16 +1,41 @@
 mod window_info;
 
-use std::{cell::RefCell, rc::Rc};
+use super::CliArgs;
+use super::connection::Connection;
 
 use gio::prelude::*;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
+use niri_ipc::Window;
+use std::{cell::RefCell, rc::Rc};
 use window_info::WindowInfo;
-use super::connection::Connection;
 
-/// Creates a gtk selection model for a given vector of niri Windows.
-fn create_window_info_model(windows: &Vec<niri_ipc::Window>) -> gtk4::SingleSelection {
+type ConnectionRef = Rc<RefCell<Connection>>;
+
+/// Creates a gtk selection model with windows retrieved via niri ipc
+fn create_window_info_model(args: &CliArgs, connection: &ConnectionRef) -> gtk4::SingleSelection {
     let model = gio::ListStore::new::<WindowInfo>();
+    let mut connection = connection.borrow_mut();
+    let mut windows = connection.list_windows();
+
+    /* User can request to only show windows from active workspace */
+    if args.workspace {
+        let workspace = connection
+            .get_active_workspace()
+            .expect("Unable to get active workspace");
+
+        let is_window_from_workspace = |window: &Window| -> bool {
+            if let Some(id) = window.workspace_id {
+                return id == workspace.id;
+            };
+            return false;
+        };
+
+        windows = windows
+            .into_iter()
+            .filter(is_window_from_workspace)
+            .collect();
+    }
 
     for window in windows {
         /* WindowInfo is a glib object that stores information about window */
@@ -29,7 +54,7 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
      * data from the model */
     let factory = gtk4::SignalListItemFactory::new();
 
-    /* Upon setup signal, we create empty label for each item in the model */
+    /* Upon setup signal, we create box with empty label for each item in the model */
     factory.connect_setup(move |_, item| {
         let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
         let box_widget = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
@@ -47,7 +72,10 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
         let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
         let window_info = item.item().and_downcast::<WindowInfo>().unwrap();
         let box_widget = item.child().and_downcast::<gtk4::Box>().unwrap();
-        let label = box_widget.first_child().and_downcast::<gtk4::Label>().unwrap();
+        let label = box_widget
+            .first_child()
+            .and_downcast::<gtk4::Label>()
+            .unwrap();
 
         label.set_label(&format!("{}: {}", window_info.id(), window_info.app_id()));
     });
@@ -55,7 +83,7 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
     factory
 }
 
-fn activate(application: &gtk4::Application, windows: &Vec<niri_ipc::Window>, connection: &Rc<RefCell<Connection>>) {
+fn activate(application: &gtk4::Application, args: &CliArgs, connection: &ConnectionRef) {
     let window = gtk4::ApplicationWindow::new(application);
 
     /* Move this window to the shell layer, this allows to escape Niri compositor
@@ -64,7 +92,7 @@ fn activate(application: &gtk4::Application, windows: &Vec<niri_ipc::Window>, co
     window.set_layer(gtk4_layer_shell::Layer::Overlay);
     window.set_keyboard_mode(gtk4_layer_shell::KeyboardMode::OnDemand);
 
-    let selection_model = create_window_info_model(windows);
+    let selection_model = create_window_info_model(args, connection);
     let widget_factory = create_window_widget_factory();
 
     let grid_view = gtk4::GridView::new(Some(selection_model), Some(widget_factory));
@@ -91,7 +119,7 @@ fn activate(application: &gtk4::Application, windows: &Vec<niri_ipc::Window>, co
     window.present();
 }
 
-pub fn start_gui(windows: Vec<niri_ipc::Window>, connection: Connection) {
+pub fn start_gui(args: CliArgs, connection: Connection) {
     /* This use of smart pointers allow for multiple owners that can borrow
      * connection object and send requests. */
     let connection_reference = Rc::new(RefCell::new(connection));
@@ -99,6 +127,10 @@ pub fn start_gui(windows: Vec<niri_ipc::Window>, connection: Connection) {
     let applicaiton_id = "io.kiki_bouba_team.NiriSwitch";
     let application = gtk4::Application::new(Some(applicaiton_id), Default::default());
 
-    application.connect_activate(move |app| activate(&app, &windows, &connection_reference));
-    application.run();
+    application.connect_activate(move |app| activate(&app, &args, &connection_reference));
+
+    /* Need to pass no arguments explicitely, otherwise gtk will try to parse our
+     * custom cli options */
+    let no_args: Vec<String> = vec![];
+    application.run_with_args(&no_args);
 }

@@ -1,6 +1,6 @@
 use std::io;
 
-use niri_ipc::{socket::Socket, Action, Reply, Request, Response, Window};
+use niri_ipc::{socket::Socket, Action, Reply, Request, Response, Window, Workspace};
 
 pub struct Connection {
     socket: Socket
@@ -22,37 +22,41 @@ impl Connection {
         Some(Connection { socket: connected_socket })
     }
 
-    pub fn get_focused_window(&mut self) -> Option<Window> {
-        let request = Request::FocusedWindow;
+    // pub fn get_focused_window(&mut self) -> Option<Window> {
+    //     let request = Request::FocusedWindow;
+    //     let send_result = self.socket.send(request);
+
+    //     let response = unwrap_send_result(send_result);
+
+    //     if let Some(Response::FocusedWindow(window)) = response {
+    //         return window;
+    //     }
+
+    //     None
+    // }
+    pub fn get_active_workspace(&mut self) -> Option<Workspace> {
+        let request = Request::Workspaces;
         let send_result = self.socket.send(request);
 
         let response = unwrap_send_result(send_result);
 
-        if let Some(Response::FocusedWindow(window)) = response {
-            return window;
-        }
-
+        if let Some(Response::Workspaces(workspaces)) = response {
+            for workspace in workspaces {
+                if !workspace.is_active { continue; }
+                return Some(workspace);
+            }
+        };
         None
     }
 
-    pub fn list_windows_in_workspace(&mut self, workspace_id: u64) -> Vec<Window> {
+    pub fn list_windows(&mut self) -> Vec<Window> {
         let request = Request::Windows;
         let send_result = self.socket.send(request);
 
         let response = unwrap_send_result(send_result);
 
-        let is_window_from_workspace = |window: &Window| -> bool {
-            if let Some(id) = window.workspace_id {
-                return id == workspace_id;
-            };
-            return false;
-        };
-
         if let Some(Response::Windows(windows)) = response {
-            return windows
-                .into_iter()
-                .filter(is_window_from_workspace)
-                .collect();
+            return windows;
         }
 
         /* No windows in the workspace. Return empty vector for easier usability
