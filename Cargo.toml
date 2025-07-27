@@ -5,3 +5,7 @@ edition = "2024"
 
 [dependencies]
 niri-ipc = "25.5.1"
+gtk4-layer-shell = "0.5.0"
+gtk4 = "0.9.7"
+gio = "0.20.12"
+glib = "0.20.12"
