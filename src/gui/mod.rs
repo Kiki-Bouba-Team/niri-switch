@@ -91,7 +91,7 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
      * and display window on top of everything else */
     window.init_layer_shell();
     window.set_layer(gtk4_layer_shell::Layer::Overlay);
-    window.set_keyboard_mode(gtk4_layer_shell::KeyboardMode::OnDemand);
+    window.set_keyboard_mode(gtk4_layer_shell::KeyboardMode::Exclusive);
 
     let selection_model = create_window_info_model(args, connection);
     let widget_factory = create_window_widget_factory();
