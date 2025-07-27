@@ -1,3 +1,4 @@
+/* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 mod window_info;
 
 use super::CliArgs;

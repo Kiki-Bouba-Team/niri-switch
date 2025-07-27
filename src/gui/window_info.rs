@@ -1,3 +1,4 @@
+/* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 use glib::Properties;
 use glib::prelude::*;
 use glib::subclass::prelude::*;

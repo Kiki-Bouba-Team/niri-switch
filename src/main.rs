@@ -1,5 +1,6 @@
-use std::process;
+/* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 use clap::Parser;
+use std::process;
 
 mod connection;
 mod gui;
@@ -8,7 +9,7 @@ mod gui;
 struct CliArgs {
     /// Display windows only from active workspace
     #[arg(short, long)]
-    workspace: bool
+    workspace: bool,
 }
 
 fn main() {

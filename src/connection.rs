@@ -1,9 +1,10 @@
+/* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 use std::io;
 
-use niri_ipc::{socket::Socket, Action, Reply, Request, Response, Window, Workspace};
+use niri_ipc::{Action, Reply, Request, Response, Window, Workspace, socket::Socket};
 
 pub struct Connection {
-    socket: Socket
+    socket: Socket,
 }
 
 impl Connection {
@@ -19,21 +20,11 @@ impl Connection {
             }
         };
 
-        Some(Connection { socket: connected_socket })
+        Some(Connection {
+            socket: connected_socket,
+        })
     }
 
-    // pub fn get_focused_window(&mut self) -> Option<Window> {
-    //     let request = Request::FocusedWindow;
-    //     let send_result = self.socket.send(request);
-
-    //     let response = unwrap_send_result(send_result);
-
-    //     if let Some(Response::FocusedWindow(window)) = response {
-    //         return window;
-    //     }
-
-    //     None
-    // }
     pub fn get_active_workspace(&mut self) -> Option<Workspace> {
         let request = Request::Workspaces;
         let send_result = self.socket.send(request);
@@ -42,7 +33,9 @@ impl Connection {
 
         if let Some(Response::Workspaces(workspaces)) = response {
             for workspace in workspaces {
-                if !workspace.is_active { continue; }
+                if !workspace.is_active {
+                    continue;
+                }
                 return Some(workspace);
             }
         };
@@ -60,7 +53,7 @@ impl Connection {
         }
 
         /* No windows in the workspace. Return empty vector for easier usability
-        * of this function */
+         * of this function */
         Vec::new()
     }
 
