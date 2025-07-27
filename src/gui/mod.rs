@@ -1,9 +1,12 @@
 mod window_info;
 
+use std::{cell::RefCell, rc::Rc};
+
 use gio::prelude::*;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
 use window_info::WindowInfo;
+use super::connection::Connection;
 
 /// Creates a gtk selection model for a given vector of niri Windows.
 fn create_window_info_model(windows: &Vec<niri_ipc::Window>) -> gtk4::SingleSelection {
@@ -29,8 +32,10 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
     /* Upon setup signal, we create empty label for each item in the model */
     factory.connect_setup(move |_, item| {
         let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
+        let box_widget = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
         let label = gtk4::Label::new(None);
-        item.set_child(Some(&label));
+        box_widget.append(&label);
+        item.set_child(Some(&box_widget));
     });
 
     /* Upon bind signal we set each label text using data stored in the model */
@@ -41,7 +46,8 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
          * so be carefull */
         let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
         let window_info = item.item().and_downcast::<WindowInfo>().unwrap();
-        let label = item.child().and_downcast::<gtk4::Label>().unwrap();
+        let box_widget = item.child().and_downcast::<gtk4::Box>().unwrap();
+        let label = box_widget.first_child().and_downcast::<gtk4::Label>().unwrap();
 
         label.set_label(&format!("{}: {}", window_info.id(), window_info.app_id()));
     });
@@ -49,7 +55,7 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
     factory
 }
 
-fn activate(application: &gtk4::Application, windows: &Vec<niri_ipc::Window>) {
+fn activate(application: &gtk4::Application, windows: &Vec<niri_ipc::Window>, connection: &Rc<RefCell<Connection>>) {
     let window = gtk4::ApplicationWindow::new(application);
 
     /* Move this window to the shell layer, this allows to escape Niri compositor
@@ -65,14 +71,19 @@ fn activate(application: &gtk4::Application, windows: &Vec<niri_ipc::Window>) {
     grid_view.set_orientation(gtk4::Orientation::Horizontal);
     grid_view.set_max_columns(1);
 
-    /* GTK Windows are counted references so the following line will not create an actual copy.
-     * It will create a second reference that is needed because the following closure takes
-     * ownership of the captured variables and would otherwise move out the `window`
-     * reference and disallow further access to it from this function */
-    let window_ref = window.clone();
-    grid_view.connect_activate(move |_, _| {
-        /* TODO: focus to selected window */
-        window_ref.close();
+    /* We need to create another reference to connection object, so it can be moved to
+     * the following closure. The closure can outlive current scope, so it has have
+     * own reference. */
+    let connection_ref = connection.clone();
+    grid_view.connect_activate(move |grid, position| {
+        let model = grid.model().unwrap();
+        let window_info = model.item(position).and_downcast::<WindowInfo>().unwrap();
+
+        let mut connection = connection_ref.borrow_mut();
+        connection.change_focused_window(window_info.id());
+
+        let window = grid.root().and_downcast::<gtk4::Window>().unwrap();
+        window.close();
     });
 
     window.set_child(Some(&grid_view));
@@ -80,10 +91,14 @@ fn activate(application: &gtk4::Application, windows: &Vec<niri_ipc::Window>) {
     window.present();
 }
 
-pub fn start_gui(windows: Vec<niri_ipc::Window>) {
+pub fn start_gui(windows: Vec<niri_ipc::Window>, connection: Connection) {
+    /* This use of smart pointers allow for multiple owners that can borrow
+     * connection object and send requests. */
+    let connection_reference = Rc::new(RefCell::new(connection));
+
     let applicaiton_id = "io.kiki_bouba_team.NiriSwitch";
     let application = gtk4::Application::new(Some(applicaiton_id), Default::default());
 
-    application.connect_activate(move |app| activate(&app, &windows));
+    application.connect_activate(move |app| activate(&app, &windows, &connection_reference));
     application.run();
 }

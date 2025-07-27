@@ -1,0 +1,95 @@
+use std::io;
+
+use niri_ipc::{socket::Socket, Action, Reply, Request, Response, Window};
+
+pub struct Connection {
+    socket: Socket
+}
+
+impl Connection {
+    pub fn new() -> Option<Self> {
+        // Connect to the default niri socket
+        let connect_result = Socket::connect();
+
+        let connected_socket = match connect_result {
+            Ok(socket) => socket,
+            Err(error) => {
+                eprintln!("Failed to connect with niri socket: {error:?}");
+                return None;
+            }
+        };
+
+        Some(Connection { socket: connected_socket })
+    }
+
+    pub fn get_focused_window(&mut self) -> Option<Window> {
+        let request = Request::FocusedWindow;
+        let send_result = self.socket.send(request);
+
+        let response = unwrap_send_result(send_result);
+
+        if let Some(Response::FocusedWindow(window)) = response {
+            return window;
+        }
+
+        None
+    }
+
+    pub fn list_windows_in_workspace(&mut self, workspace_id: u64) -> Vec<Window> {
+        let request = Request::Windows;
+        let send_result = self.socket.send(request);
+
+        let response = unwrap_send_result(send_result);
+
+        let is_window_from_workspace = |window: &Window| -> bool {
+            if let Some(id) = window.workspace_id {
+                return id == workspace_id;
+            };
+            return false;
+        };
+
+        if let Some(Response::Windows(windows)) = response {
+            return windows
+                .into_iter()
+                .filter(is_window_from_workspace)
+                .collect();
+        }
+
+        /* No windows in the workspace. Return empty vector for easier usability
+        * of this function */
+        Vec::new()
+    }
+
+    pub fn change_focused_window(&mut self, new_window_id: u64) -> bool {
+        let request = Request::Action(Action::FocusWindow { id: new_window_id });
+        let send_result = self.socket.send(request);
+
+        let response = unwrap_send_result(send_result);
+
+        if let Some(Response::Handled) = response {
+            return true;
+        };
+
+        false
+    }
+}
+
+fn unwrap_send_result(send_result: io::Result<Reply>) -> Option<Response> {
+    let response = match send_result {
+        Ok(response) => response,
+        Err(error) => {
+            eprintln!("Failed to send request: {error:?}");
+            return None;
+        }
+    };
+
+    let response = match response {
+        Ok(response) => response,
+        Err(error) => {
+            eprintln!("Error response from niri: {error:?}");
+            return None;
+        }
+    };
+
+    Some(response)
+}
