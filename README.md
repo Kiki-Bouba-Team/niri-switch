@@ -1,6 +1,7 @@
-# niri-switch
+# niri-switch - A niri task switcher
 
 Niri-switch implements faster task switching for Niri compositor. It's meant to resamble Alt-Tab funtionality known from Windows, Gnome, KDE Plasma and many other desktop environments.
+
 ## Dependencies
 
 * `niri` - obviously, niri-switch needs running Niri instance to connect via IPC socket.
