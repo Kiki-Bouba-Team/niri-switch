@@ -13,6 +13,8 @@ use window_info::WindowInfo;
 
 type ConnectionRef = Rc<RefCell<Connection>>;
 
+pub const APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
+
 /// Creates a gtk selection model with windows retrieved via niri ipc
 fn create_window_info_model(args: &CliArgs, connection: &ConnectionRef) -> gtk4::SingleSelection {
     let model = gio::ListStore::new::<WindowInfo>();
@@ -125,8 +127,7 @@ pub fn start_gui(args: CliArgs, connection: Connection) {
      * connection object and send requests. */
     let connection_reference = Rc::new(RefCell::new(connection));
 
-    let applicaiton_id = "io.kiki_bouba_team.NiriSwitch";
-    let application = gtk4::Application::new(Some(applicaiton_id), Default::default());
+    let application = gtk4::Application::new(Some(APP_ID), Default::default());
 
     application.connect_activate(move |app| activate(&app, &args, &connection_reference));
 
