@@ -15,6 +15,7 @@ use window_info::WindowInfo;
 type ConnectionRef = Rc<RefCell<Connection>>;
 
 pub const APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
+const WINDOW_LABEL_MARGIN: i32 = 15;
 
 /// Creates a gtk selection model with windows retrieved via niri ipc
 fn create_window_info_model(args: &CliArgs, connection: &ConnectionRef) -> gtk4::SingleSelection {
@@ -61,10 +62,16 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
     /* Upon setup signal, we create box with empty label for each item in the model */
     factory.connect_setup(move |_, item| {
         let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
+        let label = gtk4::Label::builder()
+            .margin_bottom(WINDOW_LABEL_MARGIN)
+            .margin_top(WINDOW_LABEL_MARGIN)
+            .margin_start(WINDOW_LABEL_MARGIN)
+            .margin_end(WINDOW_LABEL_MARGIN)
+            .build();
         let box_widget = gtk4::Box::builder()
             .orientation(gtk4::Orientation::Vertical)
             .build();
-        box_widget.append(&gtk4::Label::new(None));
+        box_widget.append(&label);
 
         item.set_child(Some(&box_widget));
     });
@@ -90,7 +97,7 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
 }
 
 /// Handle the window focus choice
-fn window_chosen(grid: &gtk4::GridView, position: u32, connection: &ConnectionRef) {
+fn window_chosen(grid: &gtk4::ListView, position: u32, connection: &ConnectionRef) {
     let model = grid.model().unwrap();
     let window_info = model.item(position).and_downcast::<WindowInfo>().unwrap();
 
@@ -106,17 +113,16 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
     let selection_model = create_window_info_model(args, connection);
     let widget_factory = create_window_widget_factory();
 
-    let grid_view = gtk4::GridView::builder()
+    let list_view = gtk4::ListView::builder()
         .model(&selection_model)
         .factory(&widget_factory)
         .orientation(gtk4::Orientation::Horizontal)
-        .max_columns(1)
         .build();
 
     /* clone! macro will create another reference to connection object, so it can be moved
      * to the closure. The closure can outlive ther current function scope, so it has hold
      * own reference. */
-    grid_view.connect_activate(clone!(
+    list_view.connect_activate(clone!(
         #[strong]
         connection,
         move |grid, position| window_chosen(grid, position, &connection)
@@ -125,7 +131,7 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
     /* Create main window */
     let window = gtk4::ApplicationWindow::builder()
         .application(application)
-        .child(&grid_view)
+        .child(&list_view)
         .build();
 
     /* Move this window to the shell layer, this allows to escape Niri compositor
