@@ -5,6 +5,7 @@ use super::CliArgs;
 use super::connection::Connection;
 
 use gio::prelude::*;
+use gtk4::glib::clone;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
 use niri_ipc::Window;
@@ -60,9 +61,11 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
     /* Upon setup signal, we create box with empty label for each item in the model */
     factory.connect_setup(move |_, item| {
         let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
-        let box_widget = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
-        let label = gtk4::Label::new(None);
-        box_widget.append(&label);
+        let box_widget = gtk4::Box::builder()
+            .orientation(gtk4::Orientation::Vertical)
+            .build();
+        box_widget.append(&gtk4::Label::new(None));
+
         item.set_child(Some(&box_widget));
     });
 
@@ -86,8 +89,44 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
     factory
 }
 
+/// Handle the window focus choice
+fn window_chosen(grid: &gtk4::GridView, position: u32, connection: &ConnectionRef) {
+    let model = grid.model().unwrap();
+    let window_info = model.item(position).and_downcast::<WindowInfo>().unwrap();
+
+    let mut connection = connection.borrow_mut();
+    connection.change_focused_window(window_info.id());
+
+    let window = grid.root().and_downcast::<gtk4::Window>().unwrap();
+    window.close();
+}
+
+/// Creates the main window, widgets, models and factories
 fn activate(application: &gtk4::Application, args: &CliArgs, connection: &ConnectionRef) {
-    let window = gtk4::ApplicationWindow::new(application);
+    let selection_model = create_window_info_model(args, connection);
+    let widget_factory = create_window_widget_factory();
+
+    let grid_view = gtk4::GridView::builder()
+        .model(&selection_model)
+        .factory(&widget_factory)
+        .orientation(gtk4::Orientation::Horizontal)
+        .max_columns(1)
+        .build();
+
+    /* clone! macro will create another reference to connection object, so it can be moved
+     * to the closure. The closure can outlive ther current function scope, so it has hold
+     * own reference. */
+    grid_view.connect_activate(clone!(
+        #[strong]
+        connection,
+        move |grid, position| window_chosen(grid, position, &connection)
+    ));
+
+    /* Create main window */
+    let window = gtk4::ApplicationWindow::builder()
+        .application(application)
+        .child(&grid_view)
+        .build();
 
     /* Move this window to the shell layer, this allows to escape Niri compositor
      * and display window on top of everything else */
@@ -95,33 +134,10 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
     window.set_layer(gtk4_layer_shell::Layer::Overlay);
     window.set_keyboard_mode(gtk4_layer_shell::KeyboardMode::Exclusive);
 
-    let selection_model = create_window_info_model(args, connection);
-    let widget_factory = create_window_widget_factory();
-
-    let grid_view = gtk4::GridView::new(Some(selection_model), Some(widget_factory));
-    grid_view.set_orientation(gtk4::Orientation::Horizontal);
-    grid_view.set_max_columns(1);
-
-    /* We need to create another reference to connection object, so it can be moved to
-     * the following closure. The closure can outlive current scope, so it has have
-     * own reference. */
-    let connection_ref = connection.clone();
-    grid_view.connect_activate(move |grid, position| {
-        let model = grid.model().unwrap();
-        let window_info = model.item(position).and_downcast::<WindowInfo>().unwrap();
-
-        let mut connection = connection_ref.borrow_mut();
-        connection.change_focused_window(window_info.id());
-
-        let window = grid.root().and_downcast::<gtk4::Window>().unwrap();
-        window.close();
-    });
-
-    window.set_child(Some(&grid_view));
-
     window.present();
 }
 
+/// Start the GUI for choosing next window to focus
 pub fn start_gui(args: CliArgs, connection: Connection) {
     /* This use of smart pointers allow for multiple owners that can borrow
      * connection object and send requests. */
