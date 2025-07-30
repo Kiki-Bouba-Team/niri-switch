@@ -7,6 +7,7 @@ edition = "2024"
 niri-ipc = "25.5.1"
 gtk4-layer-shell = "0.5.0"
 gtk4 = "0.9.7"
+gdk4 = "0.9.6"
 gio = "0.20.12"
 glib = "0.20.12"
 clap = { version = "4.0", features = ["derive"] }

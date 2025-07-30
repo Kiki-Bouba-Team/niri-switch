@@ -613,6 +613,7 @@ name = "niri-switch"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "gdk4",
  "gio",
  "glib",
  "gtk4",

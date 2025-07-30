@@ -12,7 +12,9 @@ use niri_ipc::Window;
 use std::{cell::RefCell, rc::Rc};
 use window_info::WindowInfo;
 
+/* Type aliases to make signatures more readable */
 type ConnectionRef = Rc<RefCell<Connection>>;
+type WindowWeakRef = glib::WeakRef<gtk4::ApplicationWindow>;
 
 pub const APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
 const WINDOW_LABEL_MARGIN: i32 = 15;
@@ -121,8 +123,27 @@ fn window_chosen(list: &gtk4::ListView, position: u32, connection: &ConnectionRe
     let window = list
         .root()
         .and_downcast::<gtk4::Window>()
-        .expect("Root widget hast to be a 'Window'");
+        .expect("Root widget has to be a 'Window'");
     window.close();
+}
+
+/// Handle key press events on the main window
+fn handle_key_pressed(key: gdk4::Key, window_ref: &WindowWeakRef) -> glib::Propagation {
+    let mut propagation = glib::Propagation::Proceed;
+    match key {
+        gdk4::Key::Escape => {
+            let window = window_ref
+                .upgrade()
+                .expect("Controller shouldn't outlive the window");
+            window.close();
+        }
+        gdk4::Key::Tab => {
+            /* Prevent default Tab behaviour */
+            propagation = glib::Propagation::Stop;
+        }
+        _ => (),
+    }
+    propagation
 }
 
 /// Creates the main window, widgets, models and factories
@@ -150,6 +171,16 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
         .application(application)
         .child(&list_view)
         .build();
+
+    /* Create a weak reference to the window, this will be moved to keyboard controller
+     * which will later be attached to the window - with strong referance this could
+     * potentially cause a reference cycle and memory leak */
+    let window_ref = window.downgrade();
+    let keyboard_controller = gtk4::EventControllerKey::new();
+    keyboard_controller
+        .connect_key_pressed(move |_, key, _, _| handle_key_pressed(key, &window_ref));
+
+    window.add_controller(keyboard_controller);
 
     /* Move this window to the shell layer, this allows to escape Niri compositor
      * and display window on top of everything else */
