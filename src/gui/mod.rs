@@ -46,7 +46,7 @@ fn create_window_info_model(args: &CliArgs, connection: &ConnectionRef) -> gtk4:
         /* WindowInfo is a glib object that stores information about window */
         model.append(&WindowInfo::new(
             window.id,
-            window.app_id.clone().unwrap().as_str(),
+            window.app_id.clone().unwrap_or_default().as_str(),
         ));
     }
 
@@ -61,7 +61,6 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
 
     /* Upon setup signal, we create box with empty label for each item in the model */
     factory.connect_setup(move |_, item| {
-        let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
         let label = gtk4::Label::builder()
             .margin_bottom(WINDOW_LABEL_MARGIN)
             .margin_top(WINDOW_LABEL_MARGIN)
@@ -73,7 +72,9 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
             .build();
         box_widget.append(&label);
 
-        item.set_child(Some(&box_widget));
+        item.downcast_ref::<gtk4::ListItem>()
+            .expect("Needs to be a ListItem")
+            .set_child(Some(&box_widget));
     });
 
     /* Upon bind signal we set each label text using data stored in the model */
@@ -82,13 +83,22 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
          * is neccessery to get to the label widget we created in setup stage.
          * This is barely safe and will panic at runtime if widget structure is modified,
          * so be carefull */
-        let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
-        let window_info = item.item().and_downcast::<WindowInfo>().unwrap();
-        let box_widget = item.child().and_downcast::<gtk4::Box>().unwrap();
-        let label = box_widget
+        let window_info = item
+            .downcast_ref::<gtk4::ListItem>()
+            .expect("Needs to be ListItem")
+            .item()
+            .and_downcast::<WindowInfo>()
+            .expect("The item has to be a 'WindowInfo'");
+
+        let label = item
+            .downcast_ref::<gtk4::ListItem>()
+            .expect("Needs to be ListItem")
+            .child()
+            .and_downcast::<gtk4::Box>()
+            .expect("The child needs to be a 'Box'")
             .first_child()
             .and_downcast::<gtk4::Label>()
-            .unwrap();
+            .expect("First child has to be a 'Label'");
 
         label.set_label(&format!("{}: {}", window_info.id(), window_info.app_id()));
     });
@@ -97,14 +107,21 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
 }
 
 /// Handle the window focus choice
-fn window_chosen(grid: &gtk4::ListView, position: u32, connection: &ConnectionRef) {
-    let model = grid.model().unwrap();
-    let window_info = model.item(position).and_downcast::<WindowInfo>().unwrap();
+fn window_chosen(list: &gtk4::ListView, position: u32, connection: &ConnectionRef) {
+    let window_info = list
+        .model()
+        .expect("List view should have a model")
+        .item(position)
+        .and_downcast::<WindowInfo>()
+        .expect("Model item has to be a 'WindowInfo'");
 
     let mut connection = connection.borrow_mut();
     connection.change_focused_window(window_info.id());
 
-    let window = grid.root().and_downcast::<gtk4::Window>().unwrap();
+    let window = list
+        .root()
+        .and_downcast::<gtk4::Window>()
+        .expect("Root widget hast to be a 'Window'");
     window.close();
 }
 
