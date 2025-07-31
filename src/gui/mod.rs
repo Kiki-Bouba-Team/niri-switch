@@ -171,6 +171,7 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
         .model(&selection_model)
         .factory(&widget_factory)
         .orientation(gtk4::Orientation::Horizontal)
+        .single_click_activate(true)
         .build();
 
     /* clone! macro will create another reference to connection object, so it can be moved
