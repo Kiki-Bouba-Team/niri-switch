@@ -150,7 +150,6 @@ fn window_chosen(list: &gtk4::ListView, position: u32, connection: &ConnectionRe
 
 /// Handle key press events on the main window
 fn handle_key_pressed(key: gdk4::Key, window_ref: &WindowWeakRef) -> glib::Propagation {
-    let mut propagation = glib::Propagation::Proceed;
     match key {
         gdk4::Key::Escape => {
             let window = window_ref
@@ -158,13 +157,9 @@ fn handle_key_pressed(key: gdk4::Key, window_ref: &WindowWeakRef) -> glib::Propa
                 .expect("Controller shouldn't outlive the window");
             window.close();
         }
-        gdk4::Key::Tab => {
-            /* Prevent default Tab behaviour */
-            propagation = glib::Propagation::Stop;
-        }
         _ => (),
     }
-    propagation
+    glib::Propagation::Proceed
 }
 
 /// Creates the main window, widgets, models and factories
