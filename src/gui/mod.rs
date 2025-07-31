@@ -9,11 +9,11 @@ use gtk4::glib::clone;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
 use niri_ipc::Window;
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 use window_info::WindowInfo;
 
 /* Type aliases to make signatures more readable */
-type ConnectionRef = Rc<RefCell<Connection>>;
+type ConnectionRef = Arc<Mutex<Connection>>;
 type WindowWeakRef = glib::WeakRef<gtk4::ApplicationWindow>;
 
 pub const APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
@@ -22,7 +22,10 @@ const WINDOW_LABEL_MARGIN: i32 = 15;
 /// Creates a gtk selection model with windows retrieved via niri ipc
 fn create_window_info_model(args: &CliArgs, connection: &ConnectionRef) -> gtk4::SingleSelection {
     let model = gio::ListStore::new::<WindowInfo>();
-    let mut connection = connection.borrow_mut();
+    let mut connection = connection.lock().unwrap();
+    /* connection uses blocking calls and this function is run on the
+     * main GTK thread so usually that would not be fine, but since
+     * this is just the activate stage, it will not freeze anything */
     let mut windows = connection.list_windows();
 
     /* User can request to only show windows from active workspace */
@@ -117,14 +120,32 @@ fn window_chosen(list: &gtk4::ListView, position: u32, connection: &ConnectionRe
         .and_downcast::<WindowInfo>()
         .expect("Model item has to be a 'WindowInfo'");
 
-    let mut connection = connection.borrow_mut();
-    connection.change_focused_window(window_info.id());
+    /* Create async context and next spawn separate thread that will perform the
+     * blocking calls */
+    glib::spawn_future_local(clone!(
+        #[weak]
+        list,
+        #[strong]
+        connection,
+        async move {
+            let window_id = window_info.id();
 
-    let window = list
-        .root()
-        .and_downcast::<gtk4::Window>()
-        .expect("Root widget has to be a 'Window'");
-    window.close();
+            /* Connection uses blocking calls, so we create a separete thread */
+            gio::spawn_blocking(move || {
+                let mut connection = connection.lock().unwrap();
+                connection.change_focused_window(window_id);
+            })
+            .await
+            .expect("Blocking call must succeed");
+
+            /* Close the window after changing focus */
+            let window = list
+                .root()
+                .and_downcast::<gtk4::Window>()
+                .expect("Root widget has to be a 'Window'");
+            window.close();
+        }
+    ));
 }
 
 /// Handle key press events on the main window
@@ -193,9 +214,10 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
 
 /// Start the GUI for choosing next window to focus
 pub fn start_gui(args: CliArgs, connection: Connection) {
-    /* This use of smart pointers allow for multiple owners that can borrow
-     * connection object and send requests. */
-    let connection_reference = Rc::new(RefCell::new(connection));
+    /* This use of atomic smart pointer and mutex allow for multiple owners that can
+     * acquire the connection object and send requests from the context of different
+     * threads. */
+    let connection_reference = Arc::new(Mutex::new(connection));
 
     let application = gtk4::Application::new(Some(APP_ID), Default::default());
 
