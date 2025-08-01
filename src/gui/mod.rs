@@ -17,15 +17,15 @@ type ConnectionRef = Arc<Mutex<Connection>>;
 type WindowWeakRef = glib::WeakRef<gtk4::ApplicationWindow>;
 
 pub const APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
-const WINDOW_LABEL_MARGIN: i32 = 15;
 
 /// Creates a gtk selection model with windows retrieved via niri ipc
 fn create_window_info_model(args: &CliArgs, connection: &ConnectionRef) -> gtk4::SingleSelection {
     let model = gio::ListStore::new::<WindowInfo>();
     let mut connection = connection.lock().unwrap();
     /* connection uses blocking calls and this function is run on the
-     * main GTK thread so usually that would not be fine, but since
-     * this is just the activate stage, it will not freeze anything */
+     * main GTK thread so usually this would not be polite, but since
+     * this is just the activate stage, it will not freeze GUI from
+     * the perspective of the user, so it should not be a big deal  */
     let mut windows = connection.list_windows();
 
     /* User can request to only show windows from active workspace */
@@ -67,12 +67,10 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
     /* Upon setup signal, we create box with empty label for each item in the model */
     factory.connect_setup(move |_, item| {
         let label = gtk4::Label::builder()
-            .margin_bottom(WINDOW_LABEL_MARGIN)
-            .margin_top(WINDOW_LABEL_MARGIN)
-            .margin_start(WINDOW_LABEL_MARGIN)
-            .margin_end(WINDOW_LABEL_MARGIN)
+            .css_name("window-entry-label")
             .build();
         let box_widget = gtk4::Box::builder()
+            .css_name("window-entry-box")
             .orientation(gtk4::Orientation::Vertical)
             .build();
         box_widget.append(&label);
@@ -172,6 +170,7 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
         .factory(&widget_factory)
         .orientation(gtk4::Orientation::Horizontal)
         .single_click_activate(true)
+        .css_name("window-list")
         .build();
 
     /* clone! macro will create another reference to connection object, so it can be moved
@@ -208,6 +207,20 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
     window.present();
 }
 
+/// Applies the style sheet to the window
+fn load_css() {
+    let css_provider = gtk4::CssProvider::new();
+    // TODO: First try to load stylesheet provided by user from ~/.config/niri-switch
+    // if exists. Otherwise fallback to the embeded configuration.
+    css_provider.load_from_string(include_str!("style.css"));
+
+    gtk4::style_context_add_provider_for_display(
+        &gdk4::Display::default().expect("Could not connect to the default display"),
+        &css_provider,
+        gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
+}
+
 /// Start the GUI for choosing next window to focus
 pub fn start_gui(args: CliArgs, connection: Connection) {
     /* This use of atomic smart pointer and mutex allow for multiple owners that can
@@ -217,6 +230,7 @@ pub fn start_gui(args: CliArgs, connection: Connection) {
 
     let application = gtk4::Application::new(Some(APP_ID), Default::default());
 
+    application.connect_startup(|_| load_css());
     application.connect_activate(move |app| activate(&app, &args, &connection_reference));
 
     /* Need to pass no arguments explicitely, otherwise gtk will try to parse our
