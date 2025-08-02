@@ -6,7 +6,9 @@
 /* The entire list of windows */
 /* window-list {} */
 
-/* An entry in the list of windows */
+/* An entry in the list of windows. */
+/* Use :selected pseudoclass to style the selected entry */
+/* Use :focus pseudoclass to style the focused entry */
 /* window-list row {} */
 
 /* A wrapper around a label with a window name */

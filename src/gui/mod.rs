@@ -9,7 +9,11 @@ use gtk4::glib::clone;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
 use niri_ipc::Window;
-use std::sync::{Arc, Mutex};
+use std::{
+    env,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 use window_info::WindowInfo;
 
 /* Type aliases to make signatures more readable */
@@ -17,6 +21,8 @@ type ConnectionRef = Arc<Mutex<Connection>>;
 type WindowWeakRef = glib::WeakRef<gtk4::ApplicationWindow>;
 
 pub const APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
+const APP_CONFIG_DIR: &str = "niri-switch";
+const STYLESHEET_FILENAME: &str = "style.css";
 
 /// Creates a gtk selection model with windows retrieved via niri ipc
 fn create_window_info_model(args: &CliArgs, connection: &ConnectionRef) -> gtk4::SingleSelection {
@@ -207,12 +213,55 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
     window.present();
 }
 
+/// Try loading custom css stylesheet provided by user into css provider
+///
+/// It will first attempt to load stylesheet from `XDG_CONFIG_HOME/niri-switch/style.css`,
+/// if unsuccessful, it will try to load styles from `~/.config/niri-switch/style.css`.
+fn try_loading_user_provided_css(css_provider: &gtk4::CssProvider) -> bool {
+    /* First try to retrieve stylesheet from XDG_CONFIG_HOME/niri-switch */
+    if let Ok(config_path) = env::var("XDG_CONFIG_HOME") {
+        let stylesheet_path = PathBuf::from(config_path)
+            .join(APP_CONFIG_DIR)
+            .join(STYLESHEET_FILENAME);
+        if stylesheet_path.exists() {
+            /* Stylesheet found, load it into the provider */
+            let css_file = gio::File::for_path(stylesheet_path);
+            css_provider.load_from_file(&css_file);
+            return true;
+        }
+    }
+
+    /* No luck with XDG_CONFIG_HOME, try $HOME/.config instead */
+    if let Ok(home_path) = env::var("HOME") {
+        let stylesheet_path = PathBuf::from(home_path)
+            .join(".config")
+            .join(APP_CONFIG_DIR)
+            .join(STYLESHEET_FILENAME);
+        if stylesheet_path.exists() {
+            /* Stylesheet found, load it into the provider */
+            let css_file = gio::File::for_path(stylesheet_path);
+            css_provider.load_from_file(&css_file);
+            return true;
+        }
+    }
+
+    /* Custom stylesheet not found */
+    false
+}
+
+/// Loads the default embeded css stylesheet into css provider
+fn load_embeded_css(css_provider: &gtk4::CssProvider) {
+    css_provider.load_from_string(include_str!("style.css"));
+}
+
 /// Applies the style sheet to the window
 fn load_css() {
     let css_provider = gtk4::CssProvider::new();
-    // TODO: First try to load stylesheet provided by user from ~/.config/niri-switch
-    // if exists. Otherwise fallback to the embeded configuration.
-    css_provider.load_from_string(include_str!("style.css"));
+
+    if !try_loading_user_provided_css(&css_provider) {
+        /* If no custom css provided, fallback to the embeded file */
+        load_embeded_css(&css_provider);
+    }
 
     gtk4::style_context_add_provider_for_display(
         &gdk4::Display::default().expect("Could not connect to the default display"),
