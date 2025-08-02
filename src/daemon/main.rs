@@ -5,6 +5,7 @@ use std::{fs::File, process};
 
 mod niri_socket;
 mod gui;
+mod dbus;
 
 #[derive(Parser)]
 struct CliArgs {

@@ -2,6 +2,7 @@
 mod window_info;
 
 use super::CliArgs;
+use super::dbus;
 use super::niri_socket::NiriSocket;
 
 use gio::prelude::*;
@@ -20,9 +21,10 @@ use window_info::WindowInfo;
 type NiriSocketRef = Arc<Mutex<NiriSocket>>;
 type WindowWeakRef = glib::WeakRef<gtk4::ApplicationWindow>;
 
-pub const APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
+const GTK4_APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
 const APP_CONFIG_DIR: &str = "niri-switch";
 const STYLESHEET_FILENAME: &str = "style.css";
+const CLIENT_REQUEST_CAP: usize = 20;
 
 /// Creates a gtk selection model with windows retrieved via niri ipc
 fn create_window_info_model(args: &CliArgs, niri_socket: &NiriSocketRef) -> gtk4::SingleSelection {
@@ -147,7 +149,7 @@ fn window_chosen(list: &gtk4::ListView, position: u32, niri_socket: &NiriSocketR
                 .root()
                 .and_downcast::<gtk4::Window>()
                 .expect("Root widget has to be a 'Window'");
-            window.close();
+            window.set_visible(false);
         }
     ));
 }
@@ -159,11 +161,21 @@ fn handle_key_pressed(key: gdk4::Key, window_ref: &WindowWeakRef) -> glib::Propa
             let window = window_ref
                 .upgrade()
                 .expect("Controller shouldn't outlive the window");
-            window.close();
+            window.set_visible(false);
         }
         _ => (),
     }
     glib::Propagation::Proceed
+}
+
+/// Handle event from the D-Bus connection
+fn handle_dbus_event(event: dbus::DbusEvent, window: &gtk4::ApplicationWindow) {
+    use dbus::DbusEvent::*;
+    match event {
+        ClientCalled => {
+            window.present();
+        }
+    }
 }
 
 /// Creates the main window, widgets, models and factories
@@ -210,13 +222,32 @@ fn activate(application: &gtk4::Application, args: &CliArgs, niri_socket: &NiriS
     window.set_layer(gtk4_layer_shell::Layer::Overlay);
     window.set_keyboard_mode(gtk4_layer_shell::KeyboardMode::Exclusive);
 
-    window.present();
+    /* DBus server will communicate with GTK app via async channel */
+    let (sender, receiver) = async_channel::bounded(CLIENT_REQUEST_CAP);
+
+    /* Start dbus server for communication with client app */
+    glib::spawn_future_local(async move {
+        dbus::server_loop(sender)
+            .await
+            .expect("DBus server shouldn't fail");
+    });
+
+    /* Start a task that handles events from D-Bus */
+    glib::spawn_future_local(clone!(
+        #[weak]
+        window,
+        async move {
+            while let Ok(event) = receiver.recv().await {
+                handle_dbus_event(event, &window);
+            }
+        }
+    ));
 }
 
 /// Try loading custom css stylesheet provided by user into css provider
 ///
-/// It will first attempt to load stylesheet from `XDG_CONFIG_HOME/niri-switch/style.css`,
-/// if unsuccessful, it will try to load styles from `~/.config/niri-switch/style.css`.
+/// It will first attempt to load stylesheet from `$XDG_CONFIG_HOME/niri-switch/style.css`,
+/// if unsuccessful, it will try to load styles from `$HOME/.config/niri-switch/style.css`.
 fn try_loading_user_provided_css(css_provider: &gtk4::CssProvider) -> bool {
     /* First try to retrieve stylesheet from XDG_CONFIG_HOME/niri-switch */
     if let Ok(config_path) = env::var("XDG_CONFIG_HOME") {
@@ -231,7 +262,7 @@ fn try_loading_user_provided_css(css_provider: &gtk4::CssProvider) -> bool {
         }
     }
 
-    /* No luck with XDG_CONFIG_HOME, try $HOME/.config instead */
+    /* No luck with XDG_CONFIG_HOME, try $HOME/.config/niri-switch instead */
     if let Ok(home_path) = env::var("HOME") {
         let stylesheet_path = PathBuf::from(home_path)
             .join(".config")
@@ -272,7 +303,7 @@ pub fn start_gui(args: CliArgs, niri_socket: NiriSocket) {
      * threads. */
     let niri_socket_ref = Arc::new(Mutex::new(niri_socket));
 
-    let application = gtk4::Application::new(Some(APP_ID), Default::default());
+    let application = gtk4::Application::new(Some(GTK4_APP_ID), Default::default());
 
     application.connect_startup(|_| load_css());
     application.connect_activate(move |app| activate(&app, &args, &niri_socket_ref));
