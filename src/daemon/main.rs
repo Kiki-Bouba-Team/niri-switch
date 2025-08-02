@@ -3,7 +3,7 @@ use clap::Parser;
 use nix::fcntl::{Flock, FlockArg};
 use std::{fs::File, process};
 
-mod connection;
+mod niri_socket;
 mod gui;
 
 #[derive(Parser)]
@@ -24,17 +24,17 @@ fn main() {
     };
 
     /* Establish connection with the Niri instance */
-    let connection = connection::Connection::new();
+    let niri_socket = niri_socket::NiriSocket::new();
 
-    let connection = match connection {
-        Some(connection) => connection,
+    let niri_socket = match niri_socket {
+        Some(socket) => socket,
         None => {
             eprintln!("Failed to connect with Niri instance");
             process::exit(1);
         }
     };
 
-    gui::start_gui(args, connection);
+    gui::start_gui(args, niri_socket);
 
     /* Locks are released on drop, but just in case check for errors */
     match lock.unlock() {
