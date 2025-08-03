@@ -4,7 +4,7 @@ const DBUS_DAEMON_ID: &str = "org.kikibouba.NiriSwitchDaemon";
 const DBUS_DAEMON_PATH: &str = "/org/kikibouba/NiriSwitchDaemon";
 
 pub enum DbusEvent {
-    ClientCalled,
+    Activate,
 }
 
 struct NiriSwitchDaemonInterface {
@@ -15,9 +15,9 @@ struct NiriSwitchDaemonInterface {
 #[zbus::interface(name = "org.kikibouba.NiriSwitchDaemon")]
 impl NiriSwitchDaemonInterface {
     /// Method called when niri-switch client is run
-    async fn client_called(&self) {
+    async fn activate(&self) {
         self.gtk_channel
-            .send(DbusEvent::ClientCalled)
+            .send(DbusEvent::Activate)
             .await
             .expect("Sending message should succeed");
     }

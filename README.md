@@ -30,10 +30,6 @@ And the app is ready to run.
 
 You can bind this command to any key combination, `Alt+Tab` is just an example.
 
-## Options
-
-You can optionally add `--workspace` option to `niri-switch` command to limit listed windows to only those from the active workspace. By default all windows from all workspaces are listed.
-
 ## Configuration
 
 You can customize the look by providing custom `~/.config/niri-switch/style.css` file. The default configuration is located in `src/gui/style.css`, you can copy it and modify.

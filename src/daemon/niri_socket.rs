@@ -26,6 +26,7 @@ impl NiriSocket {
         })
     }
 
+    #[allow(dead_code)]
     pub fn get_active_workspace(&mut self) -> Option<Workspace> {
         let request = Request::Workspaces;
         let send_result = self.socket.send(request);
@@ -43,6 +44,7 @@ impl NiriSocket {
         None
     }
 
+    #[allow(dead_code)]
     pub fn list_windows(&mut self) -> Vec<Window> {
         let request = Request::Windows;
         let send_result = self.socket.send(request);
