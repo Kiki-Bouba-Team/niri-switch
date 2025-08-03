@@ -47,16 +47,16 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
          * is neccessery to get to the label widget we created in setup stage.
          * This is barely safe and will panic at runtime if widget structure is modified,
          * so be carefull */
-        let window_info = item
+        let item = item
             .downcast_ref::<gtk4::ListItem>()
-            .expect("Needs to be ListItem")
+            .expect("Needs to be a ListItem");
+
+        let window_info = item
             .item()
             .and_downcast::<WindowInfo>()
             .expect("The item has to be a 'WindowInfo'");
 
         let label = item
-            .downcast_ref::<gtk4::ListItem>()
-            .expect("Needs to be ListItem")
             .child()
             .and_downcast::<gtk4::Box>()
             .expect("The child needs to be a 'Box'")
@@ -126,10 +126,19 @@ async fn handle_daemon_activated(list: &gtk4::ListView, niri_socket: &NiriSocket
     let selection_model = list.model().unwrap();
     let list_store = selection_model
         .downcast_ref::<gtk4::SingleSelection>()
-        .unwrap()
+        .expect("Needs to be a 'SingleSelection' type")
         .model()
         .and_downcast::<gio::ListStore>()
-        .unwrap();
+        .expect("Needs to be a 'ListStore type");
+    let window = list
+        .root()
+        .and_downcast::<gtk4::Window>()
+        .expect("Root widget has to be a 'Window'");
+
+    /* If window is already shown, there is nothing to do */
+    if window.is_visible() {
+        return;
+    }
 
     /* Reload the listed windows, state might have changes since the last time.
      * This is also the initial filling of the list. */
@@ -158,10 +167,6 @@ async fn handle_daemon_activated(list: &gtk4::ListView, niri_socket: &NiriSocket
     }
 
     /* Next bring the window back to visibility */
-    let window = list
-        .root()
-        .and_downcast::<gtk4::Window>()
-        .expect("Root widget has to be a 'Window'");
     window.present();
 
     /* List will loose focus after droping the elements, need to grab it again */
@@ -182,7 +187,8 @@ async fn handle_dbus_event(
 
 /// Creates the main window, widgets, models and factories
 fn activate(application: &gtk4::Application, niri_socket: &NiriSocketRef) {
-    let selection_model = gtk4::SingleSelection::new(Some(gio::ListStore::new::<WindowInfo>()));
+    let window_store = gio::ListStore::new::<WindowInfo>();
+    let selection_model = gtk4::SingleSelection::new(Some(window_store));
     let widget_factory = create_window_widget_factory();
 
     let list_view = gtk4::ListView::builder()
