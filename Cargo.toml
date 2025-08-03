@@ -18,3 +18,7 @@ async-channel = "2.5.0"
 [[bin]]
 name = "niri-switch-daemon"
 path = "src/daemon/main.rs"
+
+[[bin]]
+name = "niri-switch"
+path = "src/client/main.rs"
