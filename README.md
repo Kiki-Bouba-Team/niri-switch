@@ -34,13 +34,13 @@ binds {
 > You can bind the command to any key combination, `Alt+Tab` is just an example.
 
 > [!TIP]
-> Instead of `spawn-at-startup` you can write a custom systemd service for `graphical-session.target` if you want more control over daemon.
+> Instead of `spawn-at-startup` you can write a custom systemd service for `graphical-session.target` if you want more control over the daemon.
 
 ## Configuration
 
 You can customize the look by providing custom `~/.config/niri-switch/style.css` file. The default configuration is located in `src/daemon/gui/style.css`, you can copy and modify it.
 
-To examine the CSS classes and the widget hierarchy you can run the `niri-switch-daemon` with debug flag: `GTK_DEBUG=interactive niri-switch-daemon` and play around in the inspector.
+To examine the CSS classes and the widget hierarchy you can run the daemon with debug flag: `GTK_DEBUG=interactive niri-switch-daemon` and play around in the inspector.
 
 GTK supports only a specific subset of CSS properties, you can learn more about it in GTK [documentation](https://docs.gtk.org/gtk4/css-properties.html).
 
@@ -50,13 +50,8 @@ The configuration is loaded at the daemon startup in this order:
 * `$HOME/.config/niri-switch/style.css` - if the above does not exist or environment variable is not set.
 * Embeded `src/daemon/gui/style.css` - if none of the above exist or needed variables are not set.
 
-## Todo
+## Resources
 
-- List all windows from workspaces (**DONE**)
-- Change focus to chosen window (**DONE**)
-- GUI for selecting the focused window (**DONE**)
-- Order windows by the time it was last focused
-- Allow for GUI customization (**DONE**)
-
-Optionally:
-- Daemonize this service and listen for all changes in focus, so that timestamps are always accurate and not based on the changes made by this program alone.
+Very useful materials when working with GTK4 and zbus in Rust:
+* [GUI development with Rust and GTK 4](https://gtk-rs.org/gtk4-rs/stable/latest/book/)
+* [zbus: D-Bus for Rust made easy](https://dbus2.github.io/zbus/)
