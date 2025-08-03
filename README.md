@@ -4,49 +4,48 @@ niri-switch implements fast task switching for [niri](https://github.com/YaLTeR/
 
 ## Project stutus
 
-niri-switch is currently **usable** but not very **useful**. It is still in early development and requires few features to be completed to actually deliver a good user experience. But anyone is welcome to play around with it and provide much appreciated feedback.
+niri-switch is currently **usable**, but not very **useful**. It is still in early development and requires few features to be completed to actually deliver a good user experience. But anyone is welcome to play around with it and provide much appreciated feedback.
 
 ## Dependencies
 
 * `niri` - niri-switch needs a running niri session to connect to it via IPC socket.
 * `gtk4`, `gtk4-layer-shell` - needed to display the graphical interface. The minimal required version of GTK4 is `4.12`.
 
-To install the program you will also need `cargo`. It's usually installed via [rustup](https://www.rust-lang.org/tools/install).
+To install the program you will also need `cargo` - the rust build system. It's usually installed via [rustup](https://www.rust-lang.org/tools/install).
 
-## Build and install
+## Getting started
 
-Clone the repository and run `cargo install --path .` inside.
+Clone the repository and run `cargo install --path ./niri-switch`.
 
-Make sure that `~/.cargo/bin` is in your `$PATH` otherwise your system will not see the `niri-switch` command after installation.
+Make sure that `~/.cargo/bin` is in your `$PATH`. You can verify it by running `niri-switch --version`.
 
-Next you can add the following line to niri's binds section in `config.kdl`:
-```
+Next you need to add following configuration to your niri config at `~/.config/niri/config.kdl`:
+```kdl
+spawn-at-startup "niri-switch-daemon"
+
 binds {
+    // Append to existing binds section
     Alt+Tab { spawn "niri-switch"; }
 }
 ```
 
-And the app is ready to run.
+**After restarting the niri session, niri-switch is ready to use.**
 
-You can bind this command to any key combination, `Alt+Tab` is just an example.
-
-## Options
-
-You can optionally add `--workspace` option to `niri-switch` command to limit listed windows to only those from the active workspace. By default all windows from all workspaces are listed.
+You can bind the command to any key combination, `Alt+Tab` is just an example.
 
 ## Configuration
 
-You can customize the look by providing custom `~/.config/niri-switch/style.css` file. The default configuration is located in `src/gui/style.css`, you can copy it and modify.
+You can customize the look by providing custom `~/.config/niri-switch/style.css` file. The default configuration is located in `src/daemon/gui/style.css`, you can copy and modify it.
 
-To examine the CSS classes and the widget hierarchy you can run this program with debug flag: `GTK_DEBUG=interactive niri-switch` and play around in the inspector.
+To examine the CSS classes and the widget hierarchy you can run the `niri-switch-daemon` with debug flag: `GTK_DEBUG=interactive niri-switch-daemon` and play around in the inspector.
 
 GTK supports only a specific subset of CSS properties, you can learn more about it in GTK [documentation](https://docs.gtk.org/gtk4/css-properties.html).
 
-The configuration is loaded at runtime in this order:
+The configuration is loaded at the daemon startup in this order:
 
 * `$XDG_CONFIG_HOME/niri-switch/style.css` - if the environment variable is set and file exists.
 * `$HOME/.config/niri-switch/style.css` - if the above does not exist or environment variable is not set.
-* Embeded `src/gui/style.css` - if none of the above exist or needed variables are not set.
+* Embeded `src/daemon/gui/style.css` - if none of the above exist or needed variables are not set.
 
 ## Todo
 

@@ -3,18 +3,16 @@ use clap::Parser;
 use nix::fcntl::{Flock, FlockArg};
 use std::{fs::File, process};
 
-mod connection;
+mod niri_socket;
 mod gui;
+mod dbus;
 
 #[derive(Parser)]
-struct CliArgs {
-    /// Display windows only from active workspace
-    #[arg(short, long)]
-    workspace: bool,
-}
+#[command(version)]
+struct CliArgs;
 
 fn main() {
-    let args = CliArgs::parse();
+    let _args = CliArgs::parse();
 
     /* Prevent multiple instances from running with file lock */
     let lock = match acquire_lock_file() {
@@ -24,17 +22,17 @@ fn main() {
     };
 
     /* Establish connection with the Niri instance */
-    let connection = connection::Connection::new();
+    let niri_socket = niri_socket::NiriSocket::new();
 
-    let connection = match connection {
-        Some(connection) => connection,
+    let niri_socket = match niri_socket {
+        Some(socket) => socket,
         None => {
             eprintln!("Failed to connect with Niri instance");
             process::exit(1);
         }
     };
 
-    gui::start_gui(args, connection);
+    gui::start_gui(niri_socket);
 
     /* Locks are released on drop, but just in case check for errors */
     match lock.unlock() {

@@ -1,14 +1,13 @@
 /* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 mod window_info;
 
-use super::CliArgs;
-use super::connection::Connection;
+use super::dbus;
+use super::niri_socket::NiriSocket;
 
 use gio::prelude::*;
 use gtk4::glib::clone;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
-use niri_ipc::Window;
 use std::{
     env,
     path::PathBuf,
@@ -17,52 +16,13 @@ use std::{
 use window_info::WindowInfo;
 
 /* Type aliases to make signatures more readable */
-type ConnectionRef = Arc<Mutex<Connection>>;
+type NiriSocketRef = Arc<Mutex<NiriSocket>>;
 type WindowWeakRef = glib::WeakRef<gtk4::ApplicationWindow>;
 
-pub const APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
+const GTK4_APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
 const APP_CONFIG_DIR: &str = "niri-switch";
 const STYLESHEET_FILENAME: &str = "style.css";
-
-/// Creates a gtk selection model with windows retrieved via niri ipc
-fn create_window_info_model(args: &CliArgs, connection: &ConnectionRef) -> gtk4::SingleSelection {
-    let model = gio::ListStore::new::<WindowInfo>();
-    let mut connection = connection.lock().unwrap();
-    /* connection uses blocking calls and this function is run on the
-     * main GTK thread so usually this would not be polite, but since
-     * this is just the activate stage, it will not freeze GUI from
-     * the perspective of the user, so it should not be a big deal  */
-    let mut windows = connection.list_windows();
-
-    /* User can request to only show windows from active workspace */
-    if args.workspace {
-        let workspace = connection
-            .get_active_workspace()
-            .expect("Unable to get active workspace");
-
-        let is_window_from_workspace = |window: &Window| -> bool {
-            if let Some(id) = window.workspace_id {
-                return id == workspace.id;
-            };
-            return false;
-        };
-
-        windows = windows
-            .into_iter()
-            .filter(is_window_from_workspace)
-            .collect();
-    }
-
-    for window in windows {
-        /* WindowInfo is a glib object that stores information about window */
-        model.append(&WindowInfo::new(
-            window.id,
-            window.app_id.clone().unwrap_or_default().as_str(),
-        ));
-    }
-
-    gtk4::SingleSelection::new(Some(model))
-}
+const CLIENT_REQUEST_CAP: usize = 20;
 
 /// Creates a gtk widget factory for displaying window information.
 fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
@@ -116,7 +76,7 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
 }
 
 /// Handle the window focus choice
-fn window_chosen(list: &gtk4::ListView, position: u32, connection: &ConnectionRef) {
+fn window_chosen(list: &gtk4::ListView, position: u32, niri_socket: &NiriSocketRef) {
     let window_info = list
         .model()
         .expect("List view should have a model")
@@ -130,14 +90,14 @@ fn window_chosen(list: &gtk4::ListView, position: u32, connection: &ConnectionRe
         #[weak]
         list,
         #[strong]
-        connection,
+        niri_socket,
         async move {
             let window_id = window_info.id();
 
-            /* Connection uses blocking calls, so we create a separete thread */
+            /* Socket uses blocking calls, so we create a separete thread */
             gio::spawn_blocking(move || {
-                let mut connection = connection.lock().unwrap();
-                connection.change_focused_window(window_id);
+                let mut niri_socket = niri_socket.lock().unwrap();
+                niri_socket.change_focused_window(window_id);
             })
             .await
             .expect("Blocking call must succeed");
@@ -147,7 +107,7 @@ fn window_chosen(list: &gtk4::ListView, position: u32, connection: &ConnectionRe
                 .root()
                 .and_downcast::<gtk4::Window>()
                 .expect("Root widget has to be a 'Window'");
-            window.close();
+            window.close()
         }
     ));
 }
@@ -166,9 +126,63 @@ fn handle_key_pressed(key: gdk4::Key, window_ref: &WindowWeakRef) -> glib::Propa
     glib::Propagation::Proceed
 }
 
+/// Handle request to activate the daemon
+async fn handle_daemon_activated(list: &gtk4::ListView, niri_socket: &NiriSocketRef) {
+    let selection_model = list.model().unwrap();
+    let list_store = selection_model
+        .downcast_ref::<gtk4::SingleSelection>()
+        .unwrap()
+        .model()
+        .and_downcast::<gio::ListStore>()
+        .unwrap();
+
+    /* Reload the listed windows, state might have changes since the last time.
+     * This is also the initial filling of the list. */
+    list_store.remove_all();
+
+    /* niri socket uses blocking calls, so it will be run on a separate thread */
+    let niri_socket_ref = niri_socket.clone();
+    let windows = gio::spawn_blocking(move || {
+        let mut niri_socket = niri_socket_ref.lock().unwrap();
+        niri_socket.list_windows()
+    })
+    .await
+    .expect("Request for windows shouldn't fail");
+
+    for window in windows {
+        /* WindowInfo is a glib object that stores information about window */
+        list_store.append(&WindowInfo::new(
+            window.id,
+            window.app_id.clone().unwrap_or_default().as_str(),
+        ));
+    }
+
+    /* Next bring the window back to visibility */
+    let window = list
+        .root()
+        .and_downcast::<gtk4::Window>()
+        .expect("Root widget has to be a 'Window'");
+    window.present();
+
+    /* List will loose focus after droping the elements, need to grab it again */
+    list.grab_focus();
+}
+
+/// Handle event from the D-Bus connection
+async fn handle_dbus_event(
+    event: dbus::DbusEvent,
+    list: &gtk4::ListView,
+    niri_socket: &NiriSocketRef,
+) {
+    use dbus::DbusEvent::*;
+    match event {
+        Activate => handle_daemon_activated(list, niri_socket).await,
+    }
+}
+
 /// Creates the main window, widgets, models and factories
-fn activate(application: &gtk4::Application, args: &CliArgs, connection: &ConnectionRef) {
-    let selection_model = create_window_info_model(args, connection);
+fn activate(application: &gtk4::Application, niri_socket: &NiriSocketRef) {
+    let selection_model = gtk4::SingleSelection::new(Some(gio::ListStore::new::<WindowInfo>()));
     let widget_factory = create_window_widget_factory();
 
     let list_view = gtk4::ListView::builder()
@@ -179,13 +193,13 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
         .css_name("window-list")
         .build();
 
-    /* clone! macro will create another reference to connection object, so it can be moved
+    /* clone! macro will create another reference to socket object, so it can be moved
      * to the closure. The closure can outlive ther current function scope, so it has hold
      * own reference. */
     list_view.connect_activate(clone!(
         #[strong]
-        connection,
-        move |grid, position| window_chosen(grid, position, &connection)
+        niri_socket,
+        move |grid, position| window_chosen(grid, position, &niri_socket)
     ));
 
     /* Create main window */
@@ -209,14 +223,36 @@ fn activate(application: &gtk4::Application, args: &CliArgs, connection: &Connec
     window.init_layer_shell();
     window.set_layer(gtk4_layer_shell::Layer::Overlay);
     window.set_keyboard_mode(gtk4_layer_shell::KeyboardMode::Exclusive);
+    window.set_hide_on_close(true);
 
-    window.present();
+    /* DBus server will communicate with GTK app via async channel */
+    let (sender, receiver) = async_channel::bounded(CLIENT_REQUEST_CAP);
+
+    /* Start dbus server for communication with client app */
+    glib::spawn_future_local(async move {
+        dbus::server_loop(sender)
+            .await
+            .expect("DBus server shouldn't fail");
+    });
+
+    /* Start a task that handles events from D-Bus */
+    glib::spawn_future_local(clone!(
+        #[weak]
+        list_view,
+        #[strong]
+        niri_socket,
+        async move {
+            while let Ok(event) = receiver.recv().await {
+                handle_dbus_event(event, &list_view, &niri_socket).await;
+            }
+        }
+    ));
 }
 
 /// Try loading custom css stylesheet provided by user into css provider
 ///
-/// It will first attempt to load stylesheet from `XDG_CONFIG_HOME/niri-switch/style.css`,
-/// if unsuccessful, it will try to load styles from `~/.config/niri-switch/style.css`.
+/// It will first attempt to load stylesheet from `$XDG_CONFIG_HOME/niri-switch/style.css`,
+/// if unsuccessful, it will try to load styles from `$HOME/.config/niri-switch/style.css`.
 fn try_loading_user_provided_css(css_provider: &gtk4::CssProvider) -> bool {
     /* First try to retrieve stylesheet from XDG_CONFIG_HOME/niri-switch */
     if let Ok(config_path) = env::var("XDG_CONFIG_HOME") {
@@ -231,7 +267,7 @@ fn try_loading_user_provided_css(css_provider: &gtk4::CssProvider) -> bool {
         }
     }
 
-    /* No luck with XDG_CONFIG_HOME, try $HOME/.config instead */
+    /* No luck with XDG_CONFIG_HOME, try $HOME/.config/niri-switch instead */
     if let Ok(home_path) = env::var("HOME") {
         let stylesheet_path = PathBuf::from(home_path)
             .join(".config")
@@ -249,18 +285,13 @@ fn try_loading_user_provided_css(css_provider: &gtk4::CssProvider) -> bool {
     false
 }
 
-/// Loads the default embeded css stylesheet into css provider
-fn load_embeded_css(css_provider: &gtk4::CssProvider) {
-    css_provider.load_from_string(include_str!("style.css"));
-}
-
 /// Applies the style sheet to the window
 fn load_css() {
     let css_provider = gtk4::CssProvider::new();
 
     if !try_loading_user_provided_css(&css_provider) {
         /* If no custom css provided, fallback to the embeded file */
-        load_embeded_css(&css_provider);
+        css_provider.load_from_string(include_str!("style.css"));
     }
 
     gtk4::style_context_add_provider_for_display(
@@ -271,16 +302,16 @@ fn load_css() {
 }
 
 /// Start the GUI for choosing next window to focus
-pub fn start_gui(args: CliArgs, connection: Connection) {
+pub fn start_gui(niri_socket: NiriSocket) {
     /* This use of atomic smart pointer and mutex allow for multiple owners that can
-     * acquire the connection object and send requests from the context of different
+     * acquire the socket object and send requests from the context of different
      * threads. */
-    let connection_reference = Arc::new(Mutex::new(connection));
+    let niri_socket_ref = Arc::new(Mutex::new(niri_socket));
 
-    let application = gtk4::Application::new(Some(APP_ID), Default::default());
+    let application = gtk4::Application::new(Some(GTK4_APP_ID), Default::default());
 
     application.connect_startup(|_| load_css());
-    application.connect_activate(move |app| activate(&app, &args, &connection_reference));
+    application.connect_activate(move |app| activate(&app, &niri_socket_ref));
 
     /* Need to pass no arguments explicitely, otherwise gtk will try to parse our
      * custom cli options */

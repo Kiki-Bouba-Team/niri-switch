@@ -1,13 +1,14 @@
 /* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 use std::io;
 
+/* Use niri_ipc crate provided by niri maintainer <3 */
 use niri_ipc::{Action, Reply, Request, Response, Window, Workspace, socket::Socket};
 
-pub struct Connection {
+pub struct NiriSocket {
     socket: Socket,
 }
 
-impl Connection {
+impl NiriSocket {
     pub fn new() -> Option<Self> {
         // Connect to the default niri socket
         let connect_result = Socket::connect();
@@ -20,11 +21,12 @@ impl Connection {
             }
         };
 
-        Some(Connection {
+        Some(NiriSocket {
             socket: connected_socket,
         })
     }
 
+    #[allow(dead_code)]
     pub fn get_active_workspace(&mut self) -> Option<Workspace> {
         let request = Request::Workspaces;
         let send_result = self.socket.send(request);
@@ -42,6 +44,7 @@ impl Connection {
         None
     }
 
+    #[allow(dead_code)]
     pub fn list_windows(&mut self) -> Vec<Window> {
         let request = Request::Windows;
         let send_result = self.socket.send(request);
