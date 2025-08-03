@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- niri-switch  Copyright (C) 2025  Kiki/Bouba Team -->
+<interface>
+  <template class="WindowItem" parent="GtkBox">
+    <property name="orientation">horizontal</property>
+    <child>
+      <object class="GtkLabel" id="title">
+        <property name="css-name">window-item-label</property>
+      </object>
+    </child>
+  </template>
+</interface>

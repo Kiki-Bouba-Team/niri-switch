@@ -18,7 +18,7 @@ use window_item::WindowItem;
 type NiriSocketRef = Arc<Mutex<NiriSocket>>;
 type WindowWeakRef = glib::WeakRef<gtk4::ApplicationWindow>;
 
-const GTK4_APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
+const GTK4_APP_ID: &str = "org.kikibouba.NiriSwitch";
 const CLIENT_REQUEST_CAP: usize = 20;
 
 /// Creates a gtk widget factory for displaying window information.
@@ -249,6 +249,10 @@ pub fn start_gui(niri_socket: NiriSocket) {
      * acquire the socket object and send requests from the context of different
      * threads. */
     let niri_socket_ref = Arc::new(Mutex::new(niri_socket));
+
+    /* Load GTK resources, this will load the compressed *.ui files */
+    gio::resources_register_include!("composite_templates.gresource")
+        .expect("Registering resources should not fail");
 
     let application = gtk4::Application::new(Some(GTK4_APP_ID), Default::default());
 

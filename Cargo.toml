@@ -22,3 +22,6 @@ path = "src/daemon/main.rs"
 [[bin]]
 name = "niri-switch"
 path = "src/client/main.rs"
+
+[build-dependencies]
+glib-build-tools = "0.21.0"

@@ -22,8 +22,6 @@ impl WindowItem {
     /// Fill the widgets based on WindowInfo
     pub fn set_window_info(&self, window_info: super::window_info::WindowInfo) {
         let imp = self.imp();
-        if let Some(label) = imp.title.borrow_mut().take() {
-            label.set_label(&format!("{}: {}", window_info.id(), window_info.app_id()));
-        }
+        imp.title.set_label(&format!("{}: {}", window_info.id(), window_info.app_id()));
     }
 }

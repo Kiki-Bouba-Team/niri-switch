@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- niri-switch  Copyright (C) 2025  Kiki/Bouba Team -->
+<gresources>
+  <gresource prefix="/org/kikibouba/niriswitch/">
+    <file compressed="true" preprocess="xml-stripblanks">window_item/window_item.ui</file>
+  </gresource>
+</gresources>
