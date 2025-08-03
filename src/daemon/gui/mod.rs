@@ -149,6 +149,11 @@ async fn handle_daemon_activated(list: &gtk4::ListView, niri_socket: &NiriSocket
     .await
     .expect("Request for windows shouldn't fail");
 
+    /* No need to display anything if there is no window */
+    if windows.is_empty() {
+        return;
+    }
+
     for window in windows {
         /* WindowInfo is a glib object that stores information about window */
         list_store.append(&WindowInfo::new(

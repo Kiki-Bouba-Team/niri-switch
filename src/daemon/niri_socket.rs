@@ -44,7 +44,6 @@ impl NiriSocket {
         None
     }
 
-    #[allow(dead_code)]
     pub fn list_windows(&mut self) -> Vec<Window> {
         let request = Request::Windows;
         let send_result = self.socket.send(request);
