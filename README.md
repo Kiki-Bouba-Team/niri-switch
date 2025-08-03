@@ -29,9 +29,12 @@ binds {
 }
 ```
 
-**After restarting the niri session, niri-switch is ready to use.**
+**After restarting the niri session, niri-switch will be ready to use.**
+> [!NOTE]
+> You can bind the command to any key combination, `Alt+Tab` is just an example.
 
-You can bind the command to any key combination, `Alt+Tab` is just an example.
+> [!TIP]
+> Instead of `spawn-at-startup` you can write a custom systemd service for `graphical-session.target` if you want more control over daemon.
 
 ## Configuration
 
