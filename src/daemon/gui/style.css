@@ -12,10 +12,10 @@
 /* window-list row {} */
 
 /* A wrapper around a label with a window name */
-window-entry-box {
+window-item-box {
     /* By default some padding is added to make it more readable */
     padding: 15px;
 }
 
 /* A label containing a window name */
-/* window-entry-label {} */
+/* window-item-label {} */

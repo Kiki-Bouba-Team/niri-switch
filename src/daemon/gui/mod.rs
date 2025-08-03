@@ -1,6 +1,7 @@
 /* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 mod style;
 mod window_info;
+mod window_item;
 
 use super::dbus;
 use super::niri_socket::NiriSocket;
@@ -11,6 +12,7 @@ use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
 use std::sync::{Arc, Mutex};
 use window_info::WindowInfo;
+use window_item::WindowItem;
 
 /* Type aliases to make signatures more readable */
 type NiriSocketRef = Arc<Mutex<NiriSocket>>;
@@ -25,28 +27,17 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
      * data from the model */
     let factory = gtk4::SignalListItemFactory::new();
 
-    /* Upon setup signal, we create box with empty label for each item in the model */
+    /* Upon setup signal, we create empty widget for each item in the model */
     factory.connect_setup(move |_, item| {
-        let label = gtk4::Label::builder()
-            .css_name("window-entry-label")
-            .build();
-        let box_widget = gtk4::Box::builder()
-            .css_name("window-entry-box")
-            .orientation(gtk4::Orientation::Vertical)
-            .build();
-        box_widget.append(&label);
+        let window_item = WindowItem::default();
 
         item.downcast_ref::<gtk4::ListItem>()
             .expect("Needs to be a ListItem")
-            .set_child(Some(&box_widget));
+            .set_child(Some(&window_item));
     });
 
-    /* Upon bind signal we set each label text using data stored in the model */
+    /* Upon bind signal we fill widgets using data stored in the model */
     factory.connect_bind(move |_, item| {
-        /* Danger zone: factory bind is a generic function, so quite a bit of casting
-         * is neccessery to get to the label widget we created in setup stage.
-         * This is barely safe and will panic at runtime if widget structure is modified,
-         * so be carefull */
         let item = item
             .downcast_ref::<gtk4::ListItem>()
             .expect("Needs to be a ListItem");
@@ -56,15 +47,12 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
             .and_downcast::<WindowInfo>()
             .expect("The item has to be a 'WindowInfo'");
 
-        let label = item
+        let window_item = item
             .child()
-            .and_downcast::<gtk4::Box>()
-            .expect("The child needs to be a 'Box'")
-            .first_child()
-            .and_downcast::<gtk4::Label>()
-            .expect("First child has to be a 'Label'");
+            .and_downcast::<WindowItem>()
+            .expect("The child needs to be a 'WindowItem'");
 
-        label.set_label(&format!("{}: {}", window_info.id(), window_info.app_id()));
+        window_item.set_window_info(window_info);
     });
 
     factory
