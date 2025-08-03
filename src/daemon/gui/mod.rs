@@ -183,7 +183,6 @@ async fn handle_dbus_event(
 /// Creates the main window, widgets, models and factories
 fn activate(application: &gtk4::Application, niri_socket: &NiriSocketRef) {
     let selection_model = gtk4::SingleSelection::new(Some(gio::ListStore::new::<WindowInfo>()));
-    // let selection_model = create_window_info_model(niri_socket);
     let widget_factory = create_window_widget_factory();
 
     let list_view = gtk4::ListView::builder()
