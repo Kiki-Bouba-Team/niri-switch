@@ -1,4 +1,5 @@
 /* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
+mod style;
 mod window_info;
 
 use super::dbus;
@@ -8,11 +9,7 @@ use gio::prelude::*;
 use gtk4::glib::clone;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
-use std::{
-    env,
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 use window_info::WindowInfo;
 
 /* Type aliases to make signatures more readable */
@@ -20,8 +17,6 @@ type NiriSocketRef = Arc<Mutex<NiriSocket>>;
 type WindowWeakRef = glib::WeakRef<gtk4::ApplicationWindow>;
 
 const GTK4_APP_ID: &str = "io.kiki_bouba_team.NiriSwitch";
-const APP_CONFIG_DIR: &str = "niri-switch";
-const STYLESHEET_FILENAME: &str = "style.css";
 const CLIENT_REQUEST_CAP: usize = 20;
 
 /// Creates a gtk widget factory for displaying window information.
@@ -254,58 +249,6 @@ fn activate(application: &gtk4::Application, niri_socket: &NiriSocketRef) {
     ));
 }
 
-/// Try loading custom css stylesheet provided by user into css provider
-///
-/// It will first attempt to load stylesheet from `$XDG_CONFIG_HOME/niri-switch/style.css`,
-/// if unsuccessful, it will try to load styles from `$HOME/.config/niri-switch/style.css`.
-fn try_loading_user_provided_css(css_provider: &gtk4::CssProvider) -> bool {
-    /* First try to retrieve stylesheet from XDG_CONFIG_HOME/niri-switch */
-    if let Ok(config_path) = env::var("XDG_CONFIG_HOME") {
-        let stylesheet_path = PathBuf::from(config_path)
-            .join(APP_CONFIG_DIR)
-            .join(STYLESHEET_FILENAME);
-        if stylesheet_path.exists() {
-            /* Stylesheet found, load it into the provider */
-            let css_file = gio::File::for_path(stylesheet_path);
-            css_provider.load_from_file(&css_file);
-            return true;
-        }
-    }
-
-    /* No luck with XDG_CONFIG_HOME, try $HOME/.config/niri-switch instead */
-    if let Ok(home_path) = env::var("HOME") {
-        let stylesheet_path = PathBuf::from(home_path)
-            .join(".config")
-            .join(APP_CONFIG_DIR)
-            .join(STYLESHEET_FILENAME);
-        if stylesheet_path.exists() {
-            /* Stylesheet found, load it into the provider */
-            let css_file = gio::File::for_path(stylesheet_path);
-            css_provider.load_from_file(&css_file);
-            return true;
-        }
-    }
-
-    /* Custom stylesheet not found */
-    false
-}
-
-/// Applies the style sheet to the window
-fn load_css() {
-    let css_provider = gtk4::CssProvider::new();
-
-    if !try_loading_user_provided_css(&css_provider) {
-        /* If no custom css provided, fallback to the embeded file */
-        css_provider.load_from_string(include_str!("style.css"));
-    }
-
-    gtk4::style_context_add_provider_for_display(
-        &gdk4::Display::default().expect("Could not connect to the default display"),
-        &css_provider,
-        gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    );
-}
-
 /// Start the GUI for choosing next window to focus
 pub fn start_gui(niri_socket: NiriSocket) {
     /* This use of atomic smart pointer and mutex allow for multiple owners that can
@@ -315,7 +258,7 @@ pub fn start_gui(niri_socket: NiriSocket) {
 
     let application = gtk4::Application::new(Some(GTK4_APP_ID), Default::default());
 
-    application.connect_startup(|_| load_css());
+    application.connect_startup(|_| style::load_css());
     application.connect_activate(move |app| activate(&app, &niri_socket_ref));
 
     /* Need to pass no arguments explicitely, otherwise gtk will try to parse our
