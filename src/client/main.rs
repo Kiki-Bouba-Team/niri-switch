@@ -1,3 +1,4 @@
+/* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 use clap::Parser;
 
 #[derive(Parser)]

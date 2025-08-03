@@ -1,3 +1,4 @@
+/* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 use std::{env, path::PathBuf};
 
 const APP_CONFIG_DIR: &str = "niri-switch";

@@ -1,3 +1,4 @@
+/* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 use async_channel::Sender;
 
 const DBUS_DAEMON_ID: &str = "org.kikibouba.NiriSwitchDaemon";
