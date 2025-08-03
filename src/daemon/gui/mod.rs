@@ -107,7 +107,7 @@ fn window_chosen(list: &gtk4::ListView, position: u32, niri_socket: &NiriSocketR
                 .root()
                 .and_downcast::<gtk4::Window>()
                 .expect("Root widget has to be a 'Window'");
-            window.set_visible(false);
+            window.close()
         }
     ));
 }
@@ -119,7 +119,7 @@ fn handle_key_pressed(key: gdk4::Key, window_ref: &WindowWeakRef) -> glib::Propa
             let window = window_ref
                 .upgrade()
                 .expect("Controller shouldn't outlive the window");
-            window.set_visible(false);
+            window.close();
         }
         _ => (),
     }
@@ -224,6 +224,7 @@ fn activate(application: &gtk4::Application, niri_socket: &NiriSocketRef) {
     window.init_layer_shell();
     window.set_layer(gtk4_layer_shell::Layer::Overlay);
     window.set_keyboard_mode(gtk4_layer_shell::KeyboardMode::Exclusive);
+    window.set_hide_on_close(true);
 
     /* DBus server will communicate with GTK app via async channel */
     let (sender, receiver) = async_channel::bounded(CLIENT_REQUEST_CAP);
