@@ -59,7 +59,7 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
 }
 
 /// Handle the window focus choice
-fn window_chosen(list: &gtk4::ListView, position: u32, niri_socket: &NiriSocketRef) {
+fn handle_window_chosen(list: &gtk4::ListView, position: u32, niri_socket: &NiriSocketRef) {
     let window_info = list
         .model()
         .expect("List view should have a model")
@@ -109,24 +109,47 @@ fn handle_key_pressed(key: gdk4::Key, window_ref: &WindowWeakRef) -> glib::Propa
     glib::Propagation::Proceed
 }
 
-/// Handle request to activate the daemon
-async fn handle_daemon_activated(list: &gtk4::ListView, niri_socket: &NiriSocketRef) {
-    let selection_model = list.model().unwrap();
+/// Select the next element in the list, wrap back to the begining if end reached
+fn advance_the_selection(list: &gtk4::ListView) {
+    let selection_model = list
+        .model()
+        .expect("ListView needs to have a model")
+        .downcast::<gtk4::SingleSelection>()
+        .expect("Needs to be a 'SingleSelection' type");
     let list_store = selection_model
-        .downcast_ref::<gtk4::SingleSelection>()
-        .expect("Needs to be a 'SingleSelection' type")
         .model()
         .and_downcast::<gio::ListStore>()
         .expect("Needs to be a 'ListStore type");
+
+    let selected = selection_model.selected();
+    let new_selected = (selected + 1) % list_store.n_items();
+    list.scroll_to(new_selected, gtk4::ListScrollFlags::FOCUS, None);
+    list.scroll_to(new_selected, gtk4::ListScrollFlags::SELECT, None);
+}
+
+/// Handle request to activate the daemon
+async fn handle_daemon_activated(list: &gtk4::ListView, niri_socket: &NiriSocketRef) {
     let window = list
         .root()
         .and_downcast::<gtk4::Window>()
         .expect("Root widget has to be a 'Window'");
 
-    /* If window is already shown, there is nothing to do */
+    /* If window is already shown, simply advance the selection */
     if window.is_visible() {
+        advance_the_selection(list);
         return;
     }
+    /* Else relad the window list and present the window */
+
+    let selection_model = list
+        .model()
+        .expect("ListView needs to have a model")
+        .downcast::<gtk4::SingleSelection>()
+        .expect("Needs to be a 'SingleSelection' type");
+    let list_store = selection_model
+        .model()
+        .and_downcast::<gio::ListStore>()
+        .expect("Needs to be a 'ListStore type");
 
     /* Reload the listed windows, state might have changes since the last time.
      * This is also the initial filling of the list. */
@@ -193,7 +216,7 @@ fn activate(application: &gtk4::Application, niri_socket: &NiriSocketRef) {
     list_view.connect_activate(clone!(
         #[strong]
         niri_socket,
-        move |grid, position| window_chosen(grid, position, &niri_socket)
+        move |list, position| handle_window_chosen(list, position, &niri_socket)
     ));
 
     /* Create main window */
