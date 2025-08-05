@@ -1,4 +1,5 @@
 /* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
+mod store;
 mod style;
 mod window_info;
 mod window_item;
@@ -15,7 +16,7 @@ use window_info::WindowInfo;
 use window_item::WindowItem;
 
 /* Type aliases to make signatures more readable */
-type NiriSocketRef = Arc<Mutex<NiriSocket>>;
+type GlobalStoreRef = Arc<Mutex<store::GlobalStore>>;
 type WindowWeakRef = glib::WeakRef<gtk4::ApplicationWindow>;
 
 const GTK4_APP_ID: &str = "org.kikibouba.NiriSwitch";
@@ -59,7 +60,7 @@ fn create_window_widget_factory() -> gtk4::SignalListItemFactory {
 }
 
 /// Handle the window focus choice
-fn handle_window_chosen(list: &gtk4::ListView, position: u32, niri_socket: &NiriSocketRef) {
+fn handle_window_chosen(list: &gtk4::ListView, position: u32, store: &GlobalStoreRef) {
     let window_info = list
         .model()
         .expect("List view should have a model")
@@ -73,14 +74,14 @@ fn handle_window_chosen(list: &gtk4::ListView, position: u32, niri_socket: &Niri
         #[weak]
         list,
         #[strong]
-        niri_socket,
+        store,
         async move {
             let window_id = window_info.id();
 
             /* Socket uses blocking calls, so we create a separete thread */
             gio::spawn_blocking(move || {
-                let mut niri_socket = niri_socket.lock().unwrap();
-                niri_socket.change_focused_window(window_id);
+                let mut store = store.lock().unwrap();
+                store.niri_socket.change_focused_window(window_id);
             })
             .await
             .expect("Blocking call must succeed");
@@ -128,7 +129,7 @@ fn advance_the_selection(list: &gtk4::ListView) {
 }
 
 /// Handle request to activate the daemon
-async fn handle_daemon_activated(list: &gtk4::ListView, niri_socket: &NiriSocketRef) {
+async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) {
     let window = list
         .root()
         .and_downcast::<gtk4::Window>()
@@ -156,10 +157,10 @@ async fn handle_daemon_activated(list: &gtk4::ListView, niri_socket: &NiriSocket
     list_store.remove_all();
 
     /* niri socket uses blocking calls, so it will be run on a separate thread */
-    let niri_socket_ref = niri_socket.clone();
+    let store_ref = store.clone();
     let windows = gio::spawn_blocking(move || {
-        let mut niri_socket = niri_socket_ref.lock().unwrap();
-        niri_socket.list_windows()
+        let mut store = store_ref.lock().unwrap();
+        store.niri_socket.list_windows()
     })
     .await
     .expect("Request for windows shouldn't fail");
@@ -185,19 +186,15 @@ async fn handle_daemon_activated(list: &gtk4::ListView, niri_socket: &NiriSocket
 }
 
 /// Handle event from the D-Bus connection
-async fn handle_dbus_event(
-    event: dbus::DbusEvent,
-    list: &gtk4::ListView,
-    niri_socket: &NiriSocketRef,
-) {
+async fn handle_dbus_event(event: dbus::DbusEvent, list: &gtk4::ListView, store: &GlobalStoreRef) {
     use dbus::DbusEvent::*;
     match event {
-        Activate => handle_daemon_activated(list, niri_socket).await,
+        Activate => handle_daemon_activated(list, store).await,
     }
 }
 
 /// Creates the main window, widgets, models and factories
-fn activate(application: &gtk4::Application, niri_socket: &NiriSocketRef) {
+fn activate(application: &gtk4::Application, niri_socket: &GlobalStoreRef) {
     let window_store = gio::ListStore::new::<WindowInfo>();
     let selection_model = gtk4::SingleSelection::new(Some(window_store));
     let widget_factory = create_window_widget_factory();
@@ -269,9 +266,8 @@ fn activate(application: &gtk4::Application, niri_socket: &NiriSocketRef) {
 /// Start the GUI for choosing next window to focus
 pub fn start_gui(niri_socket: NiriSocket) {
     /* This use of atomic smart pointer and mutex allow for multiple owners that can
-     * acquire the socket object and send requests from the context of different
-     * threads. */
-    let niri_socket_ref = Arc::new(Mutex::new(niri_socket));
+     * acquire the store object and mutate it from the context of different threads */
+    let store_ref = Arc::new(Mutex::new(store::GlobalStore::new(niri_socket)));
 
     /* Load GTK resources, this will load the compressed *.ui files */
     gio::resources_register_include!("composite_templates.gresource")
@@ -280,7 +276,7 @@ pub fn start_gui(niri_socket: NiriSocket) {
     let application = gtk4::Application::new(Some(GTK4_APP_ID), Default::default());
 
     application.connect_startup(|_| style::load_css());
-    application.connect_activate(move |app| activate(&app, &niri_socket_ref));
+    application.connect_activate(move |app| activate(&app, &store_ref));
 
     /* Need to pass no arguments explicitely, otherwise gtk will try to parse our
      * custom cli options */
