@@ -194,7 +194,7 @@ async fn handle_dbus_event(event: dbus::DbusEvent, list: &gtk4::ListView, store:
 }
 
 /// Creates the main window, widgets, models and factories
-fn activate(application: &gtk4::Application, niri_socket: &GlobalStoreRef) {
+fn activate(application: &gtk4::Application, global_store: &GlobalStoreRef) {
     let window_store = gio::ListStore::new::<WindowInfo>();
     let selection_model = gtk4::SingleSelection::new(Some(window_store));
     let widget_factory = create_window_widget_factory();
@@ -212,8 +212,8 @@ fn activate(application: &gtk4::Application, niri_socket: &GlobalStoreRef) {
      * own reference. */
     list_view.connect_activate(clone!(
         #[strong]
-        niri_socket,
-        move |list, position| handle_window_chosen(list, position, &niri_socket)
+        global_store,
+        move |list, position| handle_window_chosen(list, position, &global_store)
     ));
 
     /* Create main window */
@@ -254,10 +254,10 @@ fn activate(application: &gtk4::Application, niri_socket: &GlobalStoreRef) {
         #[weak]
         list_view,
         #[strong]
-        niri_socket,
+        global_store,
         async move {
             while let Ok(event) = receiver.recv().await {
-                handle_dbus_event(event, &list_view, &niri_socket).await;
+                handle_dbus_event(event, &list_view, &global_store).await;
             }
         }
     ));
