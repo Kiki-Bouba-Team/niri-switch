@@ -74,7 +74,7 @@ pub struct AppInfo {
     pub app_id: Option<String>,
     pub display_name: String,
     /* Serialized gio::Icon */
-    pub icon: Option<glib::Variant>
+    pub icon: Option<glib::Variant>,
 }
 
 impl From<&gio::AppInfo> for AppInfo {
@@ -88,13 +88,13 @@ impl From<&gio::AppInfo> for AppInfo {
 
         let icon = match app_info.icon() {
             Some(icon) => icon.serialize(),
-            None => None
+            None => None,
         };
 
         Self {
             app_id,
             display_name,
-            icon
+            icon,
         }
     }
 }

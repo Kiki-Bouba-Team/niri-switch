@@ -15,7 +15,7 @@ pub struct WindowInfo {
     app_name: RefCell<String>,
 
     #[property(get, set)]
-    app_icon: RefCell<Option<gio::Icon>>
+    app_icon: RefCell<Option<gio::Icon>>,
 }
 
 #[glib::derived_properties]
