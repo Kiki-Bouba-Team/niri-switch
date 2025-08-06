@@ -170,12 +170,17 @@ async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) 
         return;
     }
 
+    let store = store.lock().unwrap();
     for window in windows {
-        /* WindowInfo is a glib object that stores information about window */
-        list_store.append(&WindowInfo::new(
-            window.id,
-            window.app_id.clone().unwrap_or_default().as_str(),
-        ));
+        let app_id = window.app_id.clone().unwrap_or_default();
+
+        /* Try to get information about the app that coresponds to the window */
+        let window_info = match store.app_database.get_app_info(&app_id) {
+            Some(app_info) => WindowInfo::new(window.id, &app_info.display_name),
+            None => WindowInfo::new(window.id, &app_id),
+        };
+
+        list_store.append(&window_info);
     }
 
     /* Next bring the window back to visibility */

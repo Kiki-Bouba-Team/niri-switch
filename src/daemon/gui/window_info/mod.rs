@@ -7,7 +7,7 @@ glib::wrapper! {
 
 /// GObject for holding information about a window
 impl WindowInfo {
-    pub fn new(id: u64, app_id: &str) -> Self {
+    pub fn new(id: u64, app_id: &String) -> Self {
         glib::Object::builder()
             .property("id", id)
             .property("app_id", app_id)
