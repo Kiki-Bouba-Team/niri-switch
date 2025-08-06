@@ -1,7 +1,7 @@
 /* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 
 use crate::niri_socket::NiriSocket;
-use gio::prelude::AppInfoExt;
+use gio::prelude::{AppInfoExt, IconExt};
 
 /// Stores objects and information that need to be widely available
 /// in the app or is often reused.
@@ -73,6 +73,8 @@ impl AppDatabase {
 pub struct AppInfo {
     pub app_id: Option<String>,
     pub display_name: String,
+    /* Serialized gio::Icon */
+    pub icon: Option<glib::Variant>
 }
 
 impl From<&gio::AppInfo> for AppInfo {
@@ -81,11 +83,18 @@ impl From<&gio::AppInfo> for AppInfo {
             Some(id) => Some(id.to_string()),
             None => None,
         };
+
         let display_name = app_info.display_name().to_string();
+
+        let icon = match app_info.icon() {
+            Some(icon) => icon.serialize(),
+            None => None
+        };
 
         Self {
             app_id,
             display_name,
+            icon
         }
     }
 }

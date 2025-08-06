@@ -176,8 +176,14 @@ async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) 
 
         /* Try to get information about the app that coresponds to the window */
         let window_info = match store.app_database.get_app_info(&app_id) {
-            Some(app_info) => WindowInfo::new(window.id, &app_info.display_name),
-            None => WindowInfo::new(window.id, &app_id),
+            Some(app_info) => {
+                let icon = match app_info.icon {
+                    Some(icon) => Some(gio::Icon::deserialize(&icon).unwrap()),
+                    None => None,
+                };
+                WindowInfo::new(window.id, &app_info.display_name, icon)
+            }
+            None => WindowInfo::new(window.id, &app_id, None),
         };
 
         list_store.append(&window_info);

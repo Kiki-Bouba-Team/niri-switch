@@ -22,6 +22,16 @@ impl WindowItem {
     /// Fill the widgets based on WindowInfo
     pub fn set_window_info(&self, window_info: super::window_info::WindowInfo) {
         let imp = self.imp();
-        imp.title.set_label(&format!("{}: {}", window_info.id(), window_info.app_id()));
+
+        imp.title.set_label(&window_info.app_name());
+
+        match window_info.app_icon() {
+            Some(gicon) => {
+                imp.icon.set_from_gicon(&gicon);
+            }
+            None => {
+                imp.icon.set_icon_name(Some("application-x-executable"));
+            }
+        };
     }
 }

@@ -1,21 +1,49 @@
-/* Uncomment elements to add some styling */
+/* See https://docs.gtk.org/gtk4/css-properties.html for reference */
+
+/* You can define variables this way */
+:root {
+    --default--border-radius: 0.7rem;
+}
 
 /* The top level window style */
-/* window {} */
+window {
+    padding: 0.7rem;
+    border-radius: var(--default--border-radius);
+}
 
 /* The entire list of windows */
-/* window-list {} */
+window-list {
+    border-radius: var(--default--border-radius);
+}
 
 /* An entry in the list of windows. */
 /* Use :selected pseudoclass to style the selected entry */
 /* Use :focus pseudoclass to style the focused entry */
 /* window-list row {} */
 
+window-list row:first-child {
+    border-top-left-radius: var(--default--border-radius);
+    border-bottom-left-radius: var(--default--border-radius);
+}
+
+window-list row:last-child {
+    border-top-right-radius: var(--default--border-radius);
+    border-bottom-right-radius: var(--default--border-radius);
+}
+
 /* A wrapper around a label with a window name */
 window-item-box {
-    /* By default some padding is added to make it more readable */
-    padding: 15px;
+    /* Padding around the contents to make it more readable */
+    padding: 1rem;
 }
 
 /* A label containing a window name */
-/* window-item-label {} */
+window-item-label {
+    /* Add some space between the icon and the label */
+    margin-left: 0.4rem;
+}
+
+/* An application icon next to the label */
+window-item-icon {
+    -gtk-icon-size: 1.3rem;
+}

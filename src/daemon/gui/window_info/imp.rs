@@ -4,6 +4,7 @@ use glib::prelude::*;
 use glib::subclass::prelude::*;
 use std::cell::{Cell, RefCell};
 
+/// GObject for holding information about a window
 #[derive(Properties, Default)]
 #[properties(wrapper_type = super::WindowInfo)]
 pub struct WindowInfo {
@@ -11,7 +12,10 @@ pub struct WindowInfo {
     id: Cell<u64>,
 
     #[property(get, set)]
-    app_id: RefCell<String>,
+    app_name: RefCell<String>,
+
+    #[property(get, set)]
+    app_icon: RefCell<Option<gio::Icon>>
 }
 
 #[glib::derived_properties]

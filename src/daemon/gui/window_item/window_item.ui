@@ -4,6 +4,11 @@
   <template class="WindowItem" parent="GtkBox">
     <property name="orientation">horizontal</property>
     <child>
+      <object class="GtkImage" id="icon">
+        <property name="css-name">window-item-icon</property>
+      </object>
+    </child>
+    <child>
       <object class="GtkLabel" id="title">
         <property name="css-name">window-item-label</property>
       </object>
