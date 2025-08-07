@@ -36,7 +36,16 @@ binds {
 > [!TIP]
 > Instead of `spawn-at-startup` you can write a custom systemd service for `graphical-session.target` if you want more control over the daemon.
 
-## Configuration
+## Default themes
+
+niri-switch is based on GTK4 and will use your system's default GTK settings. The config is usually located at `~/.config/gtk-4.0/settings.ini` and can be modified. For example, if you want to use dark theme in niri-switch without any CSS modification, you can add 
+```
+[Settings]
+gtk-application-prefer-dark-theme = true
+```
+to the `settings.ini` file (this will have a global effect). Or run the `niri-switch-daemon` with `GTK_THEME` environment variable.
+
+## Customization
 
 You can customize the look by providing custom `~/.config/niri-switch/style.css` file. The default configuration is located in `src/daemon/gui/style.css`, you can copy and modify it.
 
