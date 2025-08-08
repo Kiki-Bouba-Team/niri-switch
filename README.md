@@ -4,6 +4,9 @@ niri-switch implements fast task switching for [niri](https://github.com/YaLTeR/
 
 The main use case is quickly switching between windows located on different displays and/or workspaces.
 
+<img width="577" height="98" alt="image" src="https://github.com/user-attachments/assets/7696337c-70c9-40f5-af96-d92394453def" />
+
+
 ## Project stutus
 
 niri-switch is currently **usable** and quite stable. It is still in early development and requires few features to be completed to actually deliver a good user experience. But anyone is welcome to play around with it and provide much appreciated feedback.
@@ -37,6 +40,12 @@ binds {
 
 > [!TIP]
 > Instead of `spawn-at-startup` you can write a custom systemd service for `graphical-session.target` if you want more control over the daemon.
+
+## Navigation
+
+After opening the overlay (e.g. via Alt + Tab), you can move around with arrow keys and select a window with Enter. To exit without focusing on any window, press Escape.
+
+Reapeted calls to niri-switch will also advance the selection.
 
 ## Default themes
 
