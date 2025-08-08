@@ -2,9 +2,11 @@
 
 niri-switch implements fast task switching for [niri](https://github.com/YaLTeR/niri) compositor. It aims to provide functionality similar to Alt-Tab known from Windows, Gnome, KDE Plasma and many other desktop environments.
 
+The main use case is quickly switching between windows located on different displays and/or workspaces.
+
 ## Project stutus
 
-niri-switch is currently **usable**, but not very **useful**. It is still in early development and requires few features to be completed to actually deliver a good user experience. But anyone is welcome to play around with it and provide much appreciated feedback.
+niri-switch is currently **usable** and quite stable. It is still in early development and requires few features to be completed to actually deliver a good user experience. But anyone is welcome to play around with it and provide much appreciated feedback.
 
 ## Dependencies
 
