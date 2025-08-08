@@ -226,6 +226,12 @@ async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) 
     /* Put windows in positions that they were last time */
     sort_windows_by_cached_order(&mut windows, store);
 
+    /* If there is more then one window, swap the first two */
+    if windows.len() > 1 {
+        windows.swap(0, 1);
+    }
+
+    /* Append windows to the list model */
     for window in &windows {
         /* Try to get information about the app that coresponds to the window */
         let window_info = get_widow_info_for_niri_window(&window, store);
@@ -237,12 +243,6 @@ async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) 
 
     /* List will loose focus after droping the elements, need to grab it again */
     list.grab_focus();
-    /* If there is more then one window, scroll to the second one */
-    if windows.len() >= 2 {
-        /* Index 1 is the second one */
-        list.scroll_to(1, gtk4::ListScrollFlags::FOCUS, None);
-        list.scroll_to(1, gtk4::ListScrollFlags::SELECT, None);
-    }
 }
 
 /// Handle event from the D-Bus connection
