@@ -238,7 +238,7 @@ async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) 
     /* List will loose focus after droping the elements, need to grab it again */
     list.grab_focus();
     /* If there is more then one window, scroll to the second one */
-    if windows.len() > 2 {
+    if windows.len() >= 2 {
         /* Index 1 is the second one */
         list.scroll_to(1, gtk4::ListScrollFlags::FOCUS, None);
         list.scroll_to(1, gtk4::ListScrollFlags::SELECT, None);
