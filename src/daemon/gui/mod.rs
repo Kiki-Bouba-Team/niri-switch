@@ -11,7 +11,10 @@ use gio::prelude::*;
 use gtk4::glib::clone;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::{Arc, Mutex},
+};
 use window_info::WindowInfo;
 use window_item::WindowItem;
 
@@ -78,6 +81,9 @@ fn handle_window_chosen(list: &gtk4::ListView, position: u32, store: &GlobalStor
         async move {
             let window_id = window_info.id();
 
+            /* Move the chosen window to the front of the window list */
+            store.lock().unwrap().window_cache.move_to_front(&window_id);
+
             /* Socket uses blocking calls, so we create a separete thread */
             gio::spawn_blocking(move || {
                 let mut store = store.lock().unwrap();
@@ -110,6 +116,34 @@ fn handle_key_pressed(key: gdk4::Key, window_ref: &WindowWeakRef) -> glib::Propa
     glib::Propagation::Proceed
 }
 
+/// Given a niri Window description returns a WindowInfo GObject
+fn get_widow_info_for_niri_window(window: &niri_ipc::Window, store: &GlobalStoreRef) -> WindowInfo {
+    let store = store.lock().unwrap();
+    let app_id = window.app_id.clone().unwrap_or_default();
+
+    /* Try to get information about the app that coresponds to the window */
+    match store.app_database.get_app_info(&app_id) {
+        Some(app_info) => {
+            let icon = match app_info.icon {
+                Some(icon) => Some(gio::Icon::deserialize(&icon).unwrap()),
+                None => None,
+            };
+            WindowInfo::new(window.id, &app_info.display_name, icon)
+        }
+        None => WindowInfo::new(window.id, &app_id, None),
+    }
+}
+
+/// Updates the cached window list with new windows, and remove the old ones
+fn update_window_cache(windows: &Vec<niri_ipc::Window>, store: &GlobalStoreRef) {
+    /* Create a set of current window ids */
+    let current_id_set: HashSet<u64> = windows.iter().map(|window| window.id).collect();
+
+    let mut store = store.lock().unwrap();
+    /* Update the cache with the new id set */
+    store.window_cache.update_cache(current_id_set);
+}
+
 /// Select the next element in the list, wrap back to the begining if end reached
 fn advance_the_selection(list: &gtk4::ListView) {
     let selection_model = list
@@ -126,6 +160,22 @@ fn advance_the_selection(list: &gtk4::ListView) {
     let new_selected = (selected + 1) % list_store.n_items();
     list.scroll_to(new_selected, gtk4::ListScrollFlags::FOCUS, None);
     list.scroll_to(new_selected, gtk4::ListScrollFlags::SELECT, None);
+}
+
+/// Put the windows in the cached positions
+fn sort_windows_by_cached_order(windows: &mut Vec<niri_ipc::Window>, store: &GlobalStoreRef) {
+    let store = store.lock().unwrap();
+
+    /* Create a lookup table that connects window id to the position in cached list */
+    let index_lookup: HashMap<u64, usize> = store
+        .window_cache
+        .into_iter()
+        .enumerate()
+        .map(|(idx, id)| (*id, idx))
+        .collect();
+
+    /* Sort the windows by the indices */
+    windows.sort_by_key(|window| index_lookup.get(&window.id).unwrap());
 }
 
 /// Handle request to activate the daemon
@@ -158,7 +208,7 @@ async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) 
 
     /* niri socket uses blocking calls, so it will be run on a separate thread */
     let store_ref = store.clone();
-    let windows = gio::spawn_blocking(move || {
+    let mut windows = gio::spawn_blocking(move || {
         let mut store = store_ref.lock().unwrap();
         store.niri_socket.list_windows()
     })
@@ -170,22 +220,15 @@ async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) 
         return;
     }
 
-    let store = store.lock().unwrap();
+    /* Window list could have changed since the last time */
+    update_window_cache(&windows, store);
+
+    /* Put windows in positions that they were last time */
+    sort_windows_by_cached_order(&mut windows, store);
+
     for window in windows {
-        let app_id = window.app_id.clone().unwrap_or_default();
-
         /* Try to get information about the app that coresponds to the window */
-        let window_info = match store.app_database.get_app_info(&app_id) {
-            Some(app_info) => {
-                let icon = match app_info.icon {
-                    Some(icon) => Some(gio::Icon::deserialize(&icon).unwrap()),
-                    None => None,
-                };
-                WindowInfo::new(window.id, &app_info.display_name, icon)
-            }
-            None => WindowInfo::new(window.id, &app_id, None),
-        };
-
+        let window_info = get_widow_info_for_niri_window(&window, store);
         list_store.append(&window_info);
     }
 
