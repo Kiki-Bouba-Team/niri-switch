@@ -52,4 +52,5 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Build
       run: cargo build --verbose
-      
+    - name: Lint
+      run: cargo clippy -- -D warnings
