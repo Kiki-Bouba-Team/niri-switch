@@ -35,3 +35,9 @@ jobs:
           meson setup builddir
           meson compile -C builddir
           sudo meson install -C builddir
+    - name: Verify GTK4 layer shell installation
+      run: |
+          pkg-config --modversion gtk4-layer-shell-0
+    - name: Build
+      run: cargo build --verbose
+      
