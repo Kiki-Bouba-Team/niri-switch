@@ -50,7 +50,7 @@ impl WindowCache {
     /// Get set of IDs that are cached but are not present in the provided set
     fn get_obsolete_windows(&self, current_windows: &HashSet<u64>) -> HashSet<u64> {
         self.window_id_set
-            .difference(&current_windows)
+            .difference(current_windows)
             .cloned()
             .collect()
     }
@@ -100,6 +100,12 @@ impl WindowCache {
     }
 }
 
+impl Default for WindowCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> IntoIterator for &'a WindowCache {
     type Item = &'a u64;
     type IntoIter = std::collections::vec_deque::Iter<'a, u64>;
@@ -126,7 +132,7 @@ impl AppDatabase {
         /* Good to try matching the id directly first, for some reason it sometimes
          * works better then the gio method. The gio algorithm is not described
          * anywhere so hard to know why that happens */
-        let display_name = self.get_app_info_from_cache(&format!("{}.desktop", app_id));
+        let display_name = self.get_app_info_from_cache(&format!("{app_id}.desktop"));
         if let Some(name) = display_name {
             return Some(name);
         }
@@ -134,8 +140,8 @@ impl AppDatabase {
         /* Get desktop app names matched to the requested string. The matches come
          * sorted according to the quality of match. Matches with the same quality
          * are put in the same array. The best ones are at the beginning */
-        let matches = gio::DesktopAppInfo::search(&app_id);
-        let best_matches = matches.get(0)?;
+        let matches = gio::DesktopAppInfo::search(app_id);
+        let best_matches = matches.first()?;
 
         /* If there are multiple best fit results, choose the shortest one.
          * This is just a heuristic that seems to work fine on average */
@@ -170,10 +176,7 @@ pub struct AppInfo {
 
 impl From<&gio::AppInfo> for AppInfo {
     fn from(app_info: &gio::AppInfo) -> Self {
-        let app_id = match app_info.id() {
-            Some(id) => Some(id.to_string()),
-            None => None,
-        };
+        let app_id = app_info.id().map(|id| id.to_string());
 
         let display_name = app_info.display_name().to_string();
 

@@ -1,0 +1,56 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  formatting-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Check formatting
+      run: cargo fmt --verbose --check
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install system packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          meson \
+          gobject-introspection \
+          valac \
+          libgtk-4-dev \
+          libpango1.0-dev \
+          libcairo2-dev \
+          libglib2.0-dev \
+          libgdk-pixbuf-2.0-dev
+    - name: Build GTK4 layer shell
+      run: |
+          git clone https://github.com/wmww/gtk4-layer-shell.git
+          cd gtk4-layer-shell
+          meson setup builddir
+          meson compile -C builddir
+          sudo meson install -C builddir
+    - name: Verify GTK4 layer shell installation
+      run: |
+          pkg-config --modversion gtk4-layer-shell-0
+    - name: Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Build
+      run: cargo build --verbose
+    - name: Lint
+      run: cargo clippy --no-deps -- -D warnings

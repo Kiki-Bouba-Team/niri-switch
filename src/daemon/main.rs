@@ -3,9 +3,9 @@ use clap::Parser;
 use nix::fcntl::{Flock, FlockArg};
 use std::{fs::File, process};
 
-mod niri_socket;
-mod gui;
 mod dbus;
+mod gui;
+mod niri_socket;
 
 #[derive(Parser)]
 #[command(version)]
@@ -18,7 +18,7 @@ fn main() {
     let lock = match acquire_lock_file() {
         Some(lock) => lock,
         /* TODO: log this failure in verbose mode */
-        None => process::exit(0)
+        None => process::exit(0),
     };
 
     /* Establish connection with the Niri instance */

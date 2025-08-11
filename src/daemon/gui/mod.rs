@@ -104,14 +104,11 @@ fn handle_window_chosen(list: &gtk4::ListView, position: u32, store: &GlobalStor
 
 /// Handle key press events on the main window
 fn handle_key_pressed(key: gdk4::Key, window_ref: &WindowWeakRef) -> glib::Propagation {
-    match key {
-        gdk4::Key::Escape => {
-            let window = window_ref
-                .upgrade()
-                .expect("Controller shouldn't outlive the window");
-            window.close();
-        }
-        _ => (),
+    if key == gdk4::Key::Escape {
+        let window = window_ref
+            .upgrade()
+            .expect("Controller shouldn't outlive the window");
+        window.close();
     }
     glib::Propagation::Proceed
 }
@@ -124,10 +121,9 @@ fn get_widow_info_for_niri_window(window: &niri_ipc::Window, store: &GlobalStore
     /* Try to get information about the app that coresponds to the window */
     match store.app_database.get_app_info(&app_id) {
         Some(app_info) => {
-            let icon = match app_info.icon {
-                Some(icon) => Some(gio::Icon::deserialize(&icon).unwrap()),
-                None => None,
-            };
+            let icon = app_info
+                .icon
+                .map(|icon| gio::Icon::deserialize(&icon).unwrap());
             WindowInfo::new(window.id, &app_info.display_name, icon)
         }
         None => WindowInfo::new(window.id, &app_id, None),
@@ -135,7 +131,7 @@ fn get_widow_info_for_niri_window(window: &niri_ipc::Window, store: &GlobalStore
 }
 
 /// Updates the cached window list with new windows, and remove the old ones
-fn update_window_cache(windows: &Vec<niri_ipc::Window>, store: &GlobalStoreRef) {
+fn update_window_cache(windows: &[niri_ipc::Window], store: &GlobalStoreRef) {
     /* Create a set of current window ids */
     let current_id_set: HashSet<u64> = windows.iter().map(|window| window.id).collect();
 
@@ -163,7 +159,7 @@ fn advance_the_selection(list: &gtk4::ListView) {
 }
 
 /// Put the windows in the cached positions
-fn sort_windows_by_cached_order(windows: &mut Vec<niri_ipc::Window>, store: &GlobalStoreRef) {
+fn sort_windows_by_cached_order(windows: &mut [niri_ipc::Window], store: &GlobalStoreRef) {
     let store = store.lock().unwrap();
 
     /* Create a lookup table that connects window id to the position in cached list */
@@ -234,7 +230,7 @@ async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) 
     /* Append windows to the list model */
     for window in &windows {
         /* Try to get information about the app that coresponds to the window */
-        let window_info = get_widow_info_for_niri_window(&window, store);
+        let window_info = get_widow_info_for_niri_window(window, store);
         list_store.append(&window_info);
     }
 
@@ -336,7 +332,7 @@ pub fn start_gui(niri_socket: NiriSocket) {
     let application = gtk4::Application::new(Some(GTK4_APP_ID), Default::default());
 
     application.connect_startup(|_| style::load_css());
-    application.connect_activate(move |app| activate(&app, &store_ref));
+    application.connect_activate(move |app| activate(app, &store_ref));
 
     /* Need to pass no arguments explicitely, otherwise gtk will try to parse our
      * custom cli options */
