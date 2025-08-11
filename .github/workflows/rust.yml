@@ -20,11 +20,18 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
+          meson \
+          gobject-introspection \
+          valac \
           libgtk-4-dev \
           libpango1.0-dev \
           libcairo2-dev \
           libglib2.0-dev \
-          libgdk-pixbuf-2.0-dev \
-          libgtk4-layer-shell-dev
-    - name: Build
-      run: cargo build --verbose
+          libgdk-pixbuf-2.0-dev
+    - name: Build GTK4 layer shell
+      run: |
+          git clone https://github.com/wmww/gtk4-layer-shell.git
+          cd gtk4-layer-shell
+          meson setup builddir
+          meson compile -C builddir
+          sudo meson install -C builddir
