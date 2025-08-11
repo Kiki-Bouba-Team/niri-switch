@@ -17,6 +17,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install system packages
-      run: sudo apt-get install libglib2.0-dev
+      run: sudo apt-get install libglib2.0-dev libgdk-pixbuf2.0-dev
     - name: Build
       run: cargo build --verbose
