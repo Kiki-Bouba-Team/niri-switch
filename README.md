@@ -7,7 +7,7 @@ The main use case is quickly switching between windows located on different disp
 <img width="577" height="98" alt="image" src="https://github.com/user-attachments/assets/7696337c-70c9-40f5-af96-d92394453def" />
 
 
-## Project stutus
+## Project status
 
 niri-switch is currently **usable** and quite stable. It is still in early development and requires few features to be completed to actually deliver a good user experience. But anyone is welcome to play around with it and provide much appreciated feedback.
 
