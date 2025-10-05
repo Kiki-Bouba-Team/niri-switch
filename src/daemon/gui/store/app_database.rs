@@ -37,10 +37,10 @@ impl AppDatabase {
 
     fn get_app_info_from_cache(&self, requested_id: &String) -> Option<AppInfo> {
         for app_info in &self.app_list {
-            if let Some(app_id) = &app_info.app_id {
-                if app_id == requested_id {
-                    return Some(app_info.clone());
-                }
+            if let Some(app_id) = &app_info.app_id
+                && app_id == requested_id
+            {
+                return Some(app_info.clone());
             }
         }
         None
