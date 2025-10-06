@@ -2,6 +2,7 @@
 <!-- niri-switch  Copyright (C) 2025  Kiki/Bouba Team -->
 <gresources>
   <gresource prefix="/org/kikibouba/niriswitch/">
-    <file compressed="true" preprocess="xml-stripblanks">window_item/window_item.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">window_list/window_item/window_item.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">window_list/window_list.ui</file>
   </gresource>
 </gresources>

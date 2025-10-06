@@ -6,7 +6,7 @@ use gtk4::subclass::prelude::*;
  * subclassing gtk4::Box. The widget layout will be loaded from
  * the window_item.ui file */
 #[derive(Debug, Default, gtk4::CompositeTemplate)]
-#[template(resource = "/org/kikibouba/niriswitch/window_item/window_item.ui")]
+#[template(resource = "/org/kikibouba/niriswitch/window_list/window_item/window_item.ui")]
 pub struct WindowItem {
     #[template_child]
     pub title: TemplateChild<gtk4::Label>,

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- niri-switch  Copyright (C) 2025  Kiki/Bouba Team -->
+<interface>
+  <template class="WindowList" parent="GtkBox">
+    <child>
+      <object class="GtkListView" id="list">
+        <property name="orientation">horizontal</property>
+        <property name="single_click_activate">true</property>
+        <property name="css-name">window-list</property>
+      </object>
+    </child>
+  </template>
+</interface>
