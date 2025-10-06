@@ -7,6 +7,7 @@ use super::dbus;
 use super::niri_socket::NiriSocket;
 
 use gio::prelude::*;
+use glib::closure_local;
 use gtk4::glib::clone;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
@@ -107,7 +108,7 @@ async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef) {
     /* Next bring the window back to visibility */
     window.present();
 
-    /* List will loose focus after droping the elements, need to grab it again */
+    /* List will lose focus after droping the elements, need to grab it again */
     list.focus_to_list();
 }
 
@@ -119,19 +120,55 @@ async fn handle_dbus_event(event: dbus::DbusEvent, list: &WindowList, store: &Gl
     }
 }
 
-/// Creates the main window, widgets, models and factories
+/// Move focus to the chosen window
+pub fn change_focused_window(window_id: u64, store: &GlobalStoreRef) {
+    /* Create async context and next spawn separate thread that will perform the
+     * blocking calls */
+    glib::spawn_future_local(clone!(
+        #[strong]
+        store,
+        async move {
+            /* Move the chosen window to the front of the window list */
+            store.lock().unwrap().window_cache.move_to_front(&window_id);
+
+            /* Socket uses blocking calls, so we create a separete thread */
+            gio::spawn_blocking(move || {
+                let mut store = store.lock().unwrap();
+                store.niri_socket.change_focused_window(window_id);
+            })
+            .await
+            .expect("Blocking call must succeed");
+        }
+    ));
+}
+
+/// Creates the main window and widgets
 fn activate(application: &gtk4::Application, global_store: &GlobalStoreRef) {
-    /* Create widget for displaying windows */
+    /* Create widget for displaying list of windows */
     let window_list = window_list::WindowList::default();
 
-    /* clone! macro will create another reference to the store object, so it can be moved
-     * to the closure. The closure can outlive ther current function scope, so it has hold
-     * own reference. */
-    window_list.connect_activate(clone!(
-        #[strong]
-        global_store,
-        move |list, position| window_list::handle_window_chosen(list, position, &global_store)
-    ));
+    /* Create a strong referance to the store object so that it can be passed
+     * to the next closure. The closure can outlive the current scope so it
+     * has to own a reference to this object */
+    let store_ref = global_store.clone();
+
+    /* Connect to the window-selected signal of the WindowList widget and trigger
+     * change of focus */
+    window_list.connect_closure(
+        "window-selected",
+        false,
+        closure_local!(move |list: &WindowList, window_id: u64| {
+            /* Change focus to the selected window */
+            change_focused_window(window_id, &store_ref);
+
+            /* Hide the overlay after changing the focus */
+            let window = list
+                .root()
+                .and_downcast::<gtk4::Window>()
+                .expect("Root widget has to be a 'Window'");
+            window.close()
+        }),
+    );
 
     /* Create main window */
     let window = gtk4::ApplicationWindow::builder()

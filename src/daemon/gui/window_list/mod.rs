@@ -4,7 +4,6 @@ mod window_info;
 mod window_item;
 
 use gtk4::glib;
-use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{SingleSelection, prelude::*};
 use niri_ipc::Window;
@@ -63,11 +62,6 @@ impl WindowList {
         let imp = self.imp();
         imp.list.grab_focus();
     }
-
-    pub fn connect_activate<F: Fn(&gtk4::ListView, u32) + 'static>(&self, f: F) {
-        let imp = self.imp();
-        imp.list.connect_activate(f);
-    }
 }
 
 /// Retrieves glib selection model from GTK4 window list
@@ -105,44 +99,4 @@ fn get_widow_info_for_niri_window(
         }
         None => WindowInfo::new(window.id, &app_id, None),
     }
-}
-
-/// Handle the window focus choice
-pub fn handle_window_chosen(list: &gtk4::ListView, position: u32, store: &super::GlobalStoreRef) {
-    let window_info = list
-        .model()
-        .expect("List view should have a model")
-        .item(position)
-        .and_downcast::<WindowInfo>()
-        .expect("Model item has to be a 'WindowInfo'");
-
-    /* Create async context and next spawn separate thread that will perform the
-     * blocking calls */
-    glib::spawn_future_local(clone!(
-        #[weak]
-        list,
-        #[strong]
-        store,
-        async move {
-            let window_id = window_info.id();
-
-            /* Move the chosen window to the front of the window list */
-            store.lock().unwrap().window_cache.move_to_front(&window_id);
-
-            /* Socket uses blocking calls, so we create a separete thread */
-            gio::spawn_blocking(move || {
-                let mut store = store.lock().unwrap();
-                store.niri_socket.change_focused_window(window_id);
-            })
-            .await
-            .expect("Blocking call must succeed");
-
-            /* Close the window after changing focus */
-            let window = list
-                .root()
-                .and_downcast::<gtk4::Window>()
-                .expect("Root widget has to be a 'Window'");
-            window.close()
-        }
-    ));
 }

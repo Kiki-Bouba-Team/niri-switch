@@ -1,15 +1,23 @@
 /* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
+// Silence the derive Properties warnings
+#![allow(unreachable_code)]
+
 use super::window_info::WindowInfo;
 use super::window_item::WindowItem;
+use glib::Properties;
 use glib::subclass::InitializingObject;
+use glib::subclass::Signal;
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
+use std::sync::OnceLock;
 
 use gtk4::prelude::*;
 
 /* Custom widget for displaying app list created by wrapping ListView.
  * The widget layout will be loaded from the app_list.ui file. Wrapping
  * is needed because otherwise we would not be able to define custom signals. */
-#[derive(Debug, Default, gtk4::CompositeTemplate)]
+#[derive(Properties, Default, gtk4::CompositeTemplate)]
+#[properties(wrapper_type = super::WindowList)]
 #[template(resource = "/org/kikibouba/niriswitch/window_list/window_list.ui")]
 pub struct WindowList {
     #[template_child]
@@ -32,15 +40,49 @@ impl ObjectSubclass for WindowList {
     }
 }
 
+#[glib::derived_properties]
 impl ObjectImpl for WindowList {
+    fn signals() -> &'static [Signal] {
+        static SIGNALS: OnceLock<Vec<Signal>> = OnceLock::new();
+        SIGNALS.get_or_init(|| {
+            vec![
+                /* This signal will be emited with the id of the chosen window */
+                Signal::builder("window-selected")
+                    .param_types([u64::static_type()])
+                    .build(),
+            ]
+        })
+    }
+
     fn constructed(&self) {
         self.parent_constructed();
+
+        /* Initialize the inner list with the widget factory and the backing model */
         let window_store = gio::ListStore::new::<WindowInfo>();
         let selection_model = gtk4::SingleSelection::new(Some(window_store));
         let widget_factory = create_window_widget_factory();
 
         self.list.set_factory(Some(&widget_factory));
         self.list.set_model(Some(&selection_model));
+
+        let obj = self.obj();
+        /* Emit a window-selected signal when the window is chosen from the list */
+        self.list.connect_activate(clone!(
+            #[weak]
+            obj,
+            move |list, position| {
+                /* Get the WindowInfo object associeted with the provided position */
+                let window_info = list
+                    .model()
+                    .expect("List view should have a model")
+                    .item(position)
+                    .and_downcast::<WindowInfo>()
+                    .expect("Model item has to be a 'WindowInfo'");
+
+                /* Emit a signal with the window id of the chosen window */
+                obj.emit_by_name("window-selected", &[&window_info.id()])
+            }
+        ));
     }
 }
 
