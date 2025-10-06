@@ -47,6 +47,12 @@ impl AppDatabase {
     }
 }
 
+impl Default for AppDatabase {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Type safe wrapper around gio::AppInfo
 ///
 /// This is needed, because gio::AppInfo holds some raw pointers,
