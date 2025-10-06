@@ -1,10 +1,6 @@
 /* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
-// Silence the derive Properties warnings
-#![allow(unreachable_code)]
-
 use super::window_info::WindowInfo;
 use super::window_item::WindowItem;
-use glib::Properties;
 use glib::subclass::InitializingObject;
 use glib::subclass::Signal;
 use gtk4::glib::clone;
@@ -16,8 +12,7 @@ use gtk4::prelude::*;
 /* Custom widget for displaying app list created by wrapping ListView.
  * The widget layout will be loaded from the app_list.ui file. Wrapping
  * is needed because otherwise we would not be able to define custom signals. */
-#[derive(Properties, Default, gtk4::CompositeTemplate)]
-#[properties(wrapper_type = super::WindowList)]
+#[derive(Default, gtk4::CompositeTemplate)]
 #[template(resource = "/org/kikibouba/niriswitch/window_list/window_list.ui")]
 pub struct WindowList {
     #[template_child]
@@ -40,7 +35,6 @@ impl ObjectSubclass for WindowList {
     }
 }
 
-#[glib::derived_properties]
 impl ObjectImpl for WindowList {
     fn signals() -> &'static [Signal] {
         static SIGNALS: OnceLock<Vec<Signal>> = OnceLock::new();
