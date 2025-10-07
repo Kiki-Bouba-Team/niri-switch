@@ -1,8 +1,8 @@
 /* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 mod imp;
 
-use glib::subclass::types::ObjectSubclassIsExt;
 use gtk4::glib;
+use gtk4::subclass::prelude::*;
 
 /* Here we create custom widget for displaying window info by
  * subclassing gtk4::Box */

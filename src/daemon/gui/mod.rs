@@ -1,14 +1,13 @@
 /* niri-switch  Copyright (C) 2025  Kiki/Bouba Team */
 mod store;
 mod style;
-mod window_info;
-mod window_item;
 mod window_list;
 
 use super::dbus;
 use super::niri_socket::NiriSocket;
 
 use gio::prelude::*;
+use glib::closure_local;
 use gtk4::glib::clone;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
@@ -16,6 +15,7 @@ use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex},
 };
+use window_list::WindowList;
 
 /* Type aliases to make signatures more readable */
 type GlobalStoreRef = Arc<Mutex<store::GlobalStore>>;
@@ -62,7 +62,7 @@ fn sort_windows_by_cached_order(windows: &mut [niri_ipc::Window], store: &Global
 }
 
 /// Handle request to activate the daemon
-async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) {
+async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef) {
     let window = list
         .root()
         .and_downcast::<gtk4::Window>()
@@ -70,12 +70,12 @@ async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) 
 
     /* If window is already shown, simply advance the selection */
     if window.is_visible() {
-        window_list::advance_the_selection(list);
+        list.advance_the_selection();
         return;
     }
     /* Else reload the listed windows, state might have changed since the last time.
      * This is also the initial filling of the list. */
-    window_list::clear_the_list(list);
+    list.clear_the_list();
 
     /* niri socket uses blocking calls, so it will be run on a separate thread */
     let store_ref = store.clone();
@@ -103,32 +103,77 @@ async fn handle_daemon_activated(list: &gtk4::ListView, store: &GlobalStoreRef) 
     }
 
     /* Append windows to the list model */
-    window_list::fill_the_list(list, &windows, store);
+    list.fill_the_list(&windows, store);
 
     /* Next bring the window back to visibility */
     window.present();
 
-    /* List will loose focus after droping the elements, need to grab it again */
-    list.grab_focus();
+    /* List will lose focus after droping the elements, need to grab it again */
+    list.focus_to_list();
 }
 
 /// Handle event from the D-Bus connection
-async fn handle_dbus_event(event: dbus::DbusEvent, list: &gtk4::ListView, store: &GlobalStoreRef) {
+async fn handle_dbus_event(event: dbus::DbusEvent, list: &WindowList, store: &GlobalStoreRef) {
     use dbus::DbusEvent::*;
     match event {
         Activate => handle_daemon_activated(list, store).await,
     }
 }
 
-/// Creates the main window, widgets, models and factories
+/// Move focus to the chosen window
+pub fn change_focused_window(window_id: u64, store: &GlobalStoreRef) {
+    /* Create async context and next spawn separate thread that will perform the
+     * blocking calls */
+    glib::spawn_future_local(clone!(
+        #[strong]
+        store,
+        async move {
+            /* Move the chosen window to the front of the window list */
+            store.lock().unwrap().window_cache.move_to_front(&window_id);
+
+            /* Socket uses blocking calls, so we create a separete thread */
+            gio::spawn_blocking(move || {
+                let mut store = store.lock().unwrap();
+                store.niri_socket.change_focused_window(window_id);
+            })
+            .await
+            .expect("Blocking call must succeed");
+        }
+    ));
+}
+
+/// Creates the main window and widgets
 fn activate(application: &gtk4::Application, global_store: &GlobalStoreRef) {
-    /* Create widget for displaying windows */
-    let list_view = window_list::create_window_list(global_store);
+    /* Create widget for displaying list of windows */
+    let window_list = window_list::WindowList::default();
+
+    /* Create a strong referance to the store object so that it can be passed
+     * to the next closure. The closure can outlive the current scope so it
+     * has to own a reference to this object */
+    let store_ref = global_store.clone();
+
+    /* Connect to the window-selected signal of the WindowList widget and trigger
+     * change of focus */
+    window_list.connect_closure(
+        "window-selected",
+        false,
+        closure_local!(move |list: &WindowList, window_id: u64| {
+            /* Change focus to the selected window */
+            change_focused_window(window_id, &store_ref);
+
+            /* Hide the overlay after changing the focus */
+            let window = list
+                .root()
+                .and_downcast::<gtk4::Window>()
+                .expect("Root widget has to be a 'Window'");
+            window.close()
+        }),
+    );
 
     /* Create main window */
     let window = gtk4::ApplicationWindow::builder()
         .application(application)
-        .child(&list_view)
+        .child(&window_list)
         .build();
 
     /* Create a weak reference to the window, this will be moved to keyboard controller
@@ -161,12 +206,12 @@ fn activate(application: &gtk4::Application, global_store: &GlobalStoreRef) {
     /* Start a task that handles events from D-Bus */
     glib::spawn_future_local(clone!(
         #[weak]
-        list_view,
+        window_list,
         #[strong]
         global_store,
         async move {
             while let Ok(event) = receiver.recv().await {
-                handle_dbus_event(event, &list_view, &global_store).await;
+                handle_dbus_event(event, &window_list, &global_store).await;
             }
         }
     ));
