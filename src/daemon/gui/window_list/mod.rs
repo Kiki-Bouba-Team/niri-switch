@@ -88,6 +88,7 @@ fn get_widow_info_for_niri_window(
 ) -> WindowInfo {
     let store = store.lock().unwrap();
     let app_id = window.app_id.clone().unwrap_or_default();
+    let window_title = window.title.clone().unwrap_or_default();
 
     /* Try to get information about the app that coresponds to the window */
     match store.app_database.get_app_info(&app_id) {
@@ -95,8 +96,8 @@ fn get_widow_info_for_niri_window(
             let icon = app_info
                 .icon
                 .map(|icon| gio::Icon::deserialize(&icon).unwrap());
-            WindowInfo::new(window.id, &app_info.display_name, icon)
+            WindowInfo::new(window.id, &window_title, &app_info.display_name, icon)
         }
-        None => WindowInfo::new(window.id, &app_id, None),
+        None => WindowInfo::new(window.id, &window_title, &app_id, None),
     }
 }

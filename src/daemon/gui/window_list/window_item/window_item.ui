@@ -9,8 +9,23 @@
       </object>
     </child>
     <child>
-      <object class="GtkLabel" id="title">
-        <property name="css-name">window-item-label</property>
+      <object class="GtkBox">
+        <property name="css-name">window-item-description</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkLabel" id="app_name">
+            <property name="css-name">window-item-label</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="title">
+            <property name="css-name">window-item-title</property>
+            <property name="ellipsize">end</property>
+            <property name="xalign">0</property>
+            <!-- Hack to help with item width calculation for ListView -->
+            <property name="max-width-chars">1</property>
+          </object>
+        </child>
       </object>
     </child>
   </template>

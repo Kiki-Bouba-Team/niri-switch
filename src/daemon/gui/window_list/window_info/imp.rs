@@ -12,6 +12,9 @@ pub struct WindowInfo {
     id: Cell<u64>,
 
     #[property(get, set)]
+    title: RefCell<String>,
+
+    #[property(get, set)]
     app_name: RefCell<String>,
 
     #[property(get, set)]

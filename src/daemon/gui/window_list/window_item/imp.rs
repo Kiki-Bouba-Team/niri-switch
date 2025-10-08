@@ -9,6 +9,9 @@ use gtk4::subclass::prelude::*;
 #[template(resource = "/org/kikibouba/niriswitch/window_list/window_item/window_item.ui")]
 pub struct WindowItem {
     #[template_child]
+    pub app_name: TemplateChild<gtk4::Label>,
+
+    #[template_child]
     pub title: TemplateChild<gtk4::Label>,
 
     #[template_child]
