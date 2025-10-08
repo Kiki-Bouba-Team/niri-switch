@@ -15,6 +15,8 @@
         <child>
           <object class="GtkLabel" id="app_name">
             <property name="css-name">window-item-label</property>
+            <property name="xalign">0</property>
+            <property name="width-chars">5</property>
           </object>
         </child>
         <child>
