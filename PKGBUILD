@@ -11,6 +11,8 @@ makedepends=('cargo')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Kiki-Bouba-Team/niri-switch/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('8b8461227acd0cb89cebc418ff9ced9080ade8aeb0dda840851ab474b5cc4252')
 
+options=('!debug')
+
 build() {
   cd "$srcdir/$pkgname-$pkgver"
   cargo build --release --locked
