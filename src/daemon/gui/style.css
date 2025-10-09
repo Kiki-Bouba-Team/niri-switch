@@ -31,19 +31,33 @@ window-list row:last-child {
     border-bottom-right-radius: var(--default--border-radius);
 }
 
-/* A wrapper around a label with a window name */
+/* A wrapper around an entry in the window list */
 window-item-box {
     /* Padding around the contents to make it more readable */
-    padding: 1rem;
+    padding: 0.9rem;
 }
 
-/* A label containing a window name */
-window-item-label {
-    /* Add some space between the icon and the label */
-    margin-left: 0.4rem;
+/* A wrapper around labels with app name and title */
+window-item-description {
+    /* Add some space between the icon and the labels */
+    margin-left: 0.7rem;
+}
+
+/* A label with the app name */
+/* window-item-label {} */
+
+/* A label with a title of a window */
+window-item-title {
+    font-size: 11px;
+}
+
+/* Set gray font color for titles that are not selected.
+ * Remove this line if it conflicts with your GTK theme  */
+window-list row:not(:selected) window-item-title {
+    color: grey;
 }
 
 /* An application icon next to the label */
 window-item-icon {
-    -gtk-icon-size: 1.3rem;
+    -gtk-icon-size: 1.7rem;
 }

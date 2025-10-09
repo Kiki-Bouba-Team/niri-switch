@@ -4,8 +4,7 @@ niri-switch implements fast task switching for [niri](https://github.com/YaLTeR/
 
 The main use case is quickly switching between windows located on different displays and/or workspaces.
 
-<img width="577" height="98" alt="image" src="https://github.com/user-attachments/assets/7696337c-70c9-40f5-af96-d92394453def" />
-
+<img width="611" height="96" alt="image" src="https://github.com/user-attachments/assets/c2261156-9ad0-45df-ab25-c6e6964b7dd0" />
 
 ## Project status
 

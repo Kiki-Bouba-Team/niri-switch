@@ -23,7 +23,8 @@ impl WindowItem {
     pub fn set_window_info(&self, window_info: super::window_info::WindowInfo) {
         let imp = self.imp();
 
-        imp.title.set_label(&window_info.app_name());
+        imp.app_name.set_label(&window_info.app_name());
+        imp.title.set_label(&window_info.title());
 
         match window_info.app_icon() {
             Some(gicon) => {
