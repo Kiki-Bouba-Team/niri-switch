@@ -62,7 +62,7 @@ fn sort_windows_by_cached_order(windows: &mut [niri_ipc::Window], store: &Global
 }
 
 /// Handle request to activate the daemon
-async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef) {
+async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef, direction: i32) {
     let window = list
         .root()
         .and_downcast::<gtk4::Window>()
@@ -70,7 +70,7 @@ async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef) {
 
     /* If window is already shown, simply advance the selection */
     if window.is_visible() {
-        list.advance_the_selection();
+        list.advance_the_selection(direction);
         return;
     }
     /* Else reload the listed windows, state might have changed since the last time.
@@ -116,8 +116,8 @@ async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef) {
 async fn handle_dbus_event(event: dbus::DbusEvent, list: &WindowList, store: &GlobalStoreRef) {
     use dbus::DbusEvent::*;
     match event {
-        Activate => handle_daemon_activated(list, store).await,
-        Previous => todo!(),
+        Activate => handle_daemon_activated(list, store, 1).await,
+        Previous => handle_daemon_activated(list, store, -1).await,
     }
 }
 

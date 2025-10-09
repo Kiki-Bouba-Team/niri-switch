@@ -37,13 +37,13 @@ impl WindowList {
     }
 
     /// Select the next element in the list, wrap back to the begining if end reached
-    pub fn advance_the_selection(&self) {
+    pub fn advance_the_selection(&self, direction: i32) {
         let imp = self.imp();
         let selection_model = get_selection_model(&imp.list);
         let list_store = get_list_store(&imp.list);
 
         let selected = selection_model.selected();
-        let new_selected = (selected + 1) % list_store.n_items();
+        let new_selected = (selected + direction) % list_store.n_items();
         imp.list
             .scroll_to(new_selected, gtk4::ListScrollFlags::FOCUS, None);
         imp.list
