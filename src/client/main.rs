@@ -3,7 +3,10 @@ use clap::Parser;
 
 #[derive(Parser)]
 #[command(version)]
-struct CliArgs;
+struct CliArgs {
+    #[arg(short, long)]
+    previous: bool,
+}
 
 #[zbus::proxy(
     default_service = "org.kikibouba.NiriSwitchDaemon",
