@@ -117,6 +117,7 @@ async fn handle_dbus_event(event: dbus::DbusEvent, list: &WindowList, store: &Gl
     use dbus::DbusEvent::*;
     match event {
         Activate => handle_daemon_activated(list, store).await,
+        Previous => todo!(),
     }
 }
 
