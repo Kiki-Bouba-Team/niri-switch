@@ -17,6 +17,18 @@ glib::wrapper! {
         @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget;
 }
 
+/* Calculate the next index for a looping list, handling wrap-around
+ * for negative directions */
+fn calculate_wrapped_index(current_index: i32, direction: i32, n_items: i32) -> u32 {
+    let new_selected_raw = current_index + direction;
+
+    // Double modulo ensures the result is always positive
+    let wrapped_index_i32 = (new_selected_raw % n_items + n_items) % n_items;
+
+    // Cast the final, safe index to u32 as required by GTK
+    wrapped_index_i32 as u32
+}
+
 impl Default for WindowList {
     fn default() -> Self {
         glib::Object::new()
@@ -42,12 +54,11 @@ impl WindowList {
         let selection_model = get_selection_model(&imp.list);
         let list_store = get_list_store(&imp.list);
 
-        let selected: i32 = selection_model.selected() as i32;
         let n_list_items_i32: i32 = list_store.n_items() as i32;
-        let new_selected_raw = selected + direction;
-        let new_selected_i32 =
-            (new_selected_raw % n_list_items_i32 + n_list_items_i32) % n_list_items_i32;
-        let new_selected: u32 = new_selected_i32 as u32;
+
+        let selected: i32 = selection_model.selected() as i32;
+        let new_selected: u32 = calculate_wrapped_index(selected, direction, n_list_items_i32);
+
         imp.list
             .scroll_to(new_selected, gtk4::ListScrollFlags::FOCUS, None);
         imp.list
