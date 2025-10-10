@@ -5,7 +5,7 @@ mod window_item;
 
 use gtk4::glib;
 use gtk4::subclass::prelude::*;
-use gtk4::{SingleSelection, prelude::*};
+use gtk4::{prelude::*, SingleSelection};
 use niri_ipc::Window;
 use window_info::WindowInfo;
 
@@ -15,17 +15,6 @@ glib::wrapper! {
     pub struct WindowList(ObjectSubclass<imp::WindowList>)
         @extends gtk4::Widget, gtk4::Box,
         @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget;
-}
-
-/// Calculate the next index for a looping list, handling wrap-around for negative directions
-fn calculate_wrapped_index(current_index: i32, direction: i32, n_items: i32) -> u32 {
-    let new_selected_raw = current_index + direction;
-
-    // Double modulo ensures the result is always positive
-    let wrapped_index_i32 = (new_selected_raw % n_items + n_items) % n_items;
-
-    // Cast the final, safe index to u32 as required by GTK
-    wrapped_index_i32 as u32
 }
 
 impl Default for WindowList {
@@ -47,16 +36,20 @@ impl WindowList {
         }
     }
 
-    /// Select the next element in the list, wrap back to the begining if end reached
-    pub fn advance_the_selection(&self, direction: i32) {
+    /// Moves the selection in the list by the given direction (positive or negative).
+    /// If the new position goes past the end or before the beginning, the selection wraps around.
+    pub fn advance_the_selection(&self, direction: i64) {
         let imp = self.imp();
         let selection_model = get_selection_model(&imp.list);
         let list_store = get_list_store(&imp.list);
 
-        let n_list_items_i32: i32 = list_store.n_items() as i32;
-
-        let selected: i32 = selection_model.selected() as i32;
-        let new_selected: u32 = calculate_wrapped_index(selected, direction, n_list_items_i32);
+        let new_selected = i64::from(selection_model.selected()) + direction;
+        let new_selected = if new_selected < 0 {
+            list_store.n_items() - 1
+        } else {
+            let number_of_elements = i64::from(list_store.n_items());
+            u32::try_from(new_selected % number_of_elements).unwrap()
+        };
 
         imp.list
             .scroll_to(new_selected, gtk4::ListScrollFlags::FOCUS, None);
