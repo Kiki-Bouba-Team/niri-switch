@@ -17,8 +17,7 @@ glib::wrapper! {
         @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget;
 }
 
-/* Calculate the next index for a looping list, handling wrap-around
- * for negative directions */
+/// Calculate the next index for a looping list, handling wrap-around for negative directions
 fn calculate_wrapped_index(current_index: i32, direction: i32, n_items: i32) -> u32 {
     let new_selected_raw = current_index + direction;
 
