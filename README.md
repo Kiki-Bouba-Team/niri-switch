@@ -47,17 +47,11 @@ After opening the overlay (e.g. via Alt + Tab), you can move around with arrow k
 
 Reapeted calls to niri-switch will also advance the selection.
 
-> [!NOTE]
-> **To enable switching to the *previous* window, you can bind an additional shortcut in your niri config using the `--previous` flag.**
-
-### Customizing Backward Navigation
-
-To enable switching to the **previous** window in the overlay (similar to `Alt+Shift+Tab` in other environments), add the following line to the `binds` section of your niri config (`~/.config/niri/config.kdl`):
+To enable switching to the *previous* window in the overlay (similar to `Alt+Shift+Tab` in other environments), you can bind an additional shortcut in your niri config using the `--previous` option in the `niri-switch` client.
 
 ```kdl
 binds {
-    Alt+Tab { spawn "niri-switch"; }
-    // Add this line for backward navigation
+    // Append this line to the existing binds section
     Alt+Shift+Tab { spawn "niri-switch" "--previous"; }
 }
 ```
