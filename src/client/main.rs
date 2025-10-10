@@ -19,7 +19,7 @@ trait NiriSwitchDaemon {
 }
 
 fn main() {
-    let _args = CliArgs::parse();
+    let args = CliArgs::parse();
 
     /* Connect to D-Bus session */
     let result = zbus::blocking::Connection::session();
@@ -41,8 +41,8 @@ fn main() {
         }
     };
 
-    /* Call correct method on the daemon interface based on the _args value */
-    let result = if _args.previous {
+    /* Call correct method on the daemon interface based on the args value */
+    let result = if args.previous {
         proxy.previous()
     } else {
         proxy.activate()
