@@ -35,10 +35,10 @@ in
 
     # The main CLI the user is likely to run
     meta = with lib; {
-      description = "Window switcher client and daemon for the Niri compositor";
-      license = licenses.gpl3Only;
-      homepage = "https://github.com/CamRed25/niri-switch";
-      maintainers = [];
+      description = "A fast task switcher for the niri compositor";
+      license = licenses.gpl3Plus;
+      homepage = "https://github.com/Kiki-Bouba-Team/niri-switch";
+      maintainers = [maintainers.cezaryswitala];
       mainProgram = "niri-switch";
       platforms = platforms.linux;
     };
