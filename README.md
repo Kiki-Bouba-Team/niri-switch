@@ -47,6 +47,21 @@ After opening the overlay (e.g. via Alt + Tab), you can move around with arrow k
 
 Reapeted calls to niri-switch will also advance the selection.
 
+> [!NOTE]
+> **To enable switching to the *previous* window, you can bind an additional shortcut in your niri config using the `--previous` flag.**
+
+### Customizing Backward Navigation
+
+To enable switching to the **previous** window in the overlay (similar to `Alt+Shift+Tab` in other environments), add the following line to the `binds` section of your niri config (`~/.config/niri/config.kdl`):
+
+```kdl
+binds {
+    Alt+Tab { spawn "niri-switch"; }
+    // Add this line for backward navigation
+    Alt+Shift+Tab { spawn "niri-switch" "--previous"; }
+}
+```
+
 ## Default themes
 
 niri-switch is based on GTK4 and will use your system's default GTK settings. The config is usually located at `~/.config/gtk-4.0/settings.ini` and can be modified. For example, if you want to use dark theme in niri-switch without any CSS modification, you can add 
