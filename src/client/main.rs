@@ -15,6 +15,7 @@ struct CliArgs {
 )]
 trait NiriSwitchDaemon {
     fn activate(&self) -> zbus::Result<()>;
+    fn previous(&self) -> zbus::Result<()>;
 }
 
 fn main() {
@@ -40,8 +41,12 @@ fn main() {
         }
     };
 
-    /* Call activate method on the daemon interface */
-    let result = proxy.activate();
+    /* Call correct method on the daemon interface based on the _args value */
+    let result = if _args.previous {
+        proxy.previous()
+    } else {
+        proxy.activate()
+    };
     match result {
         Ok(_) => (),
         Err(error) => {
