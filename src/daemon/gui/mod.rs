@@ -61,8 +61,23 @@ fn sort_windows_by_cached_order(windows: &mut [niri_ipc::Window], store: &Global
     windows.sort_by_key(|window| index_lookup.get(&window.id).unwrap());
 }
 
+/// Handle selecting previous window in the overlay
+async fn handle_previous_selection(list: &WindowList) {
+    let window = list
+        .root()
+        .and_downcast::<gtk4::Window>()
+        .expect("Root widget has to be a 'Window'");
+
+    /* If window is already shown, move back the selection */
+    if window.is_visible() {
+        list.advance_the_selection(-1);
+        return;
+    }
+    /* Else: do nothing */
+}
+
 /// Handle request to activate the daemon
-async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef, direction: i32) {
+async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef) {
     let window = list
         .root()
         .and_downcast::<gtk4::Window>()
@@ -70,7 +85,7 @@ async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef, dire
 
     /* If window is already shown, simply advance the selection */
     if window.is_visible() {
-        list.advance_the_selection(direction);
+        list.advance_the_selection(1);
         return;
     }
     /* Else reload the listed windows, state might have changed since the last time.
@@ -116,8 +131,8 @@ async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef, dire
 async fn handle_dbus_event(event: dbus::DbusEvent, list: &WindowList, store: &GlobalStoreRef) {
     use dbus::DbusEvent::*;
     match event {
-        Activate => handle_daemon_activated(list, store, 1).await,
-        Previous => handle_daemon_activated(list, store, -1).await,
+        Activate => handle_daemon_activated(list, store).await,
+        Previous => handle_previous_selection(list, store).await,
     }
 }
 
