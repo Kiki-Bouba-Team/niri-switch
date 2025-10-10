@@ -42,8 +42,12 @@ impl WindowList {
         let selection_model = get_selection_model(&imp.list);
         let list_store = get_list_store(&imp.list);
 
-        let selected = selection_model.selected();
-        let new_selected = (selected + direction) % list_store.n_items();
+        let selected: i32 = selection_model.selected() as i32;
+        let n_list_items_i32: i32 = list_store.n_items() as i32;
+        let new_selected_raw = selected + direction;
+        let new_selected_i32 =
+            (new_selected_raw % n_list_items_i32 + n_list_items_i32) % n_list_items_i32;
+        let new_selected: u32 = new_selected_i32 as u32;
         imp.list
             .scroll_to(new_selected, gtk4::ListScrollFlags::FOCUS, None);
         imp.list
