@@ -4,6 +4,7 @@ use clap::Parser;
 #[derive(Parser)]
 #[command(version)]
 struct CliArgs {
+    /// Move selection to the previous window in the overlay
     #[arg(short, long)]
     previous: bool,
 }
