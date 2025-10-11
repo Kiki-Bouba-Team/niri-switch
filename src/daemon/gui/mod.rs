@@ -71,7 +71,7 @@ async fn handle_previous_selection(list: &WindowList) {
 
     /* If window is already shown, move back the selection */
     if window.is_visible() {
-        list.advance_the_selection(Direction::Forward);
+        list.advance_the_selection(Direction::Backward);
     }
     /* Else: do nothing */
 }
