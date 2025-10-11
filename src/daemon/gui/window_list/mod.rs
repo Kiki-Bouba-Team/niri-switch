@@ -17,6 +17,11 @@ glib::wrapper! {
         @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget;
 }
 
+pub enum Direction {
+    Forward,
+    Backward,
+}
+
 impl Default for WindowList {
     fn default() -> Self {
         glib::Object::new()
@@ -36,14 +41,26 @@ impl WindowList {
         }
     }
 
-    /// Select the next element in the list, wrap back to the begining if end reached
-    pub fn advance_the_selection(&self) {
+    /// Moves the current selection one step in the given direction
+    /// If the new position goes past the end or before the beginning, the selection wraps around
+    pub fn advance_the_selection(&self, direction: Direction) {
         let imp = self.imp();
         let selection_model = get_selection_model(&imp.list);
         let list_store = get_list_store(&imp.list);
 
-        let selected = selection_model.selected();
-        let new_selected = (selected + 1) % list_store.n_items();
+        let shift = match direction {
+            Direction::Forward => 1,
+            Direction::Backward => -1,
+        };
+
+        let new_selected = i64::from(selection_model.selected()) + shift;
+        let new_selected = if new_selected < 0 {
+            list_store.n_items() - 1
+        } else {
+            let number_of_elements = i64::from(list_store.n_items());
+            u32::try_from(new_selected % number_of_elements).unwrap()
+        };
+
         imp.list
             .scroll_to(new_selected, gtk4::ListScrollFlags::FOCUS, None);
         imp.list
