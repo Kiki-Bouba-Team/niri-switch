@@ -1,1 +1,3 @@
 /target
+# Remove result generated with nix
+result 

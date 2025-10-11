@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
   outputs = inputs @ {flake-parts, ...}: let
@@ -18,6 +18,11 @@
               rustc
               cargo
               rust-analyzer
+              pkg-config
+              gtk4
+              gtk4-layer-shell
+              gsettings-desktop-schemas
+              glib
             ];
           };
         };
