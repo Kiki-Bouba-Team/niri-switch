@@ -34,7 +34,7 @@ binds {
 }
 ```
 
-**After restarting the niri session, `niri-switch` will be ready to use.**
+**After restarting the niri session, niri-switch will be ready to use.**
 > [!NOTE]
 > You can bind the command to any key combination, `Alt+Tab` is just an example.
 
@@ -58,7 +58,7 @@ binds {
 
 ## Default themes
 
-niri-switch is based on GTK4 and will use your system's default GTK settings. The config is usually located at `~/.config/gtk-4.0/settings.ini` and can be modified. For example, if you want to use a dark theme in `niri-switch` without any CSS modification, you can add 
+niri-switch is based on GTK4 and will use your system's default GTK settings. The config is usually located at `~/.config/gtk-4.0/settings.ini` and can be modified. For example, if you want to use a dark theme in niri-switch without any CSS modification, you can add 
 ```
 [Settings]
 gtk-application-prefer-dark-theme = true
