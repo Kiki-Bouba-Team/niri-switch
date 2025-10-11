@@ -41,8 +41,8 @@ impl WindowList {
         }
     }
 
-    /// Moves the selection in the list by the given direction (positive or negative).
-    /// If the new position goes past the end or before the beginning, the selection wraps around.
+    /// Moves the current selection one step in the given direction
+    /// If the new position goes past the end or before the beginning, the selection wraps around
     pub fn advance_the_selection(&self, direction: Direction) {
         let imp = self.imp();
         let selection_model = get_selection_model(&imp.list);
