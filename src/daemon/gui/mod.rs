@@ -15,6 +15,7 @@ use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex},
 };
+use window_list::Direction;
 use window_list::WindowList;
 
 /* Type aliases to make signatures more readable */
@@ -70,7 +71,7 @@ async fn handle_previous_selection(list: &WindowList) {
 
     /* If window is already shown, move back the selection */
     if window.is_visible() {
-        list.advance_the_selection(-1);
+        list.advance_the_selection(Direction::Forward);
         return;
     }
     /* Else: do nothing */
@@ -85,7 +86,7 @@ async fn handle_daemon_activated(list: &WindowList, store: &GlobalStoreRef) {
 
     /* If window is already shown, simply advance the selection */
     if window.is_visible() {
-        list.advance_the_selection(1);
+        list.advance_the_selection(Direction::Forward);
         return;
     }
     /* Else reload the listed windows, state might have changed since the last time.
@@ -132,7 +133,7 @@ async fn handle_dbus_event(event: dbus::DbusEvent, list: &WindowList, store: &Gl
     use dbus::DbusEvent::*;
     match event {
         Activate => handle_daemon_activated(list, store).await,
-        Previous => handle_previous_selection(list, store).await,
+        Previous => handle_previous_selection(list).await,
     }
 }
 
