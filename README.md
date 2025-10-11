@@ -6,24 +6,35 @@ The main use case is quickly switching between windows located on different disp
 
 <img width="611" height="96" alt="image" src="https://github.com/user-attachments/assets/c2261156-9ad0-45df-ab25-c6e6964b7dd0" />
 
-## Project status
-
-niri-switch is currently **usable** and quite stable. It is still in early development and requires a few features to be completed to actually deliver a good user experience. But anyone is welcome to play around with it and provide much appreciated feedback.
+The program is currently **usable** and quite stable. It still requires a few features to be completed to actually deliver a good user experience. But anyone is welcome to play around with it and provide much appreciated feedback.
 
 ## Dependencies
 
 * `niri` - niri-switch needs a running niri session to connect to it via IPC socket.
 * `gtk4`, `gtk4-layer-shell` - needed to display the graphical interface. The minimal required version of GTK4 is `4.12`.
 
-To install the program you will also need `cargo` - the Rust build system. It's usually installed via [rustup](https://www.rust-lang.org/tools/install).
+## Installation
 
-## Getting started
+### Arch Linux (AUR)
+
+The [niri-switch](https://aur.archlinux.org/packages/niri-switch) package is available on AUR for Arch-based distributions. You can install it via any AUR wrapper you like (yay, paru etc.). For example:
+
+```sh
+paru -S niri-switch
+```
+
+### Other distributions
+
+On other distributions you will need `cargo` - the Rust build system. It's usually installed via [rustup](https://www.rust-lang.org/tools/install).
 
 Clone the repository and run `cargo install --path ./niri-switch`.
 
-Make sure that `~/.cargo/bin` is in your `$PATH`. You can verify it by running `niri-switch --version`.
+Make sure that `~/.cargo/bin` is in your `$PATH`. You can verify the installation by running `niri-switch --version`.
 
-Next you need to add the following configuration to your niri config at `~/.config/niri/config.kdl`:
+## Getting started
+
+
+After installation you need to add the following configuration to your niri config at `~/.config/niri/config.kdl`:
 ```kdl
 spawn-at-startup "niri-switch-daemon"
 
