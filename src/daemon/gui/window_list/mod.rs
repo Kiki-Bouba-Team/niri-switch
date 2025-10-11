@@ -17,7 +17,6 @@ glib::wrapper! {
         @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget;
 }
 
-#[derive(PartialEq)]
 pub enum Direction {
     Forward,
     Backward,
