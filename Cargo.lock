@@ -976,7 +976,7 @@ dependencies = [
 
 [[package]]
 name = "niri-switch"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "async-channel",
  "clap",
