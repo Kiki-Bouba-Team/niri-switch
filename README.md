@@ -23,6 +23,50 @@ The [niri-switch](https://aur.archlinux.org/packages/niri-switch) package is ava
 paru -S niri-switch
 ```
 
+### NixOS (Flake)
+
+This repository provides a flake you can use to install the package.
+
+To install it you **must have flake enabled** and your NixOS configuration
+**must be managed with flakes.** See [https://nixos.wiki/wiki/Flakes](https://nixos.wiki/wiki/Flakes) for
+instructions on how to install and enable them on NixOS.
+
+Next, you can add this flake as inputs in `flake.nix` in the repository
+containing your NixOS configuration:
+
+```nix
+inputs = {
+  # ---Snip---
+  niri-switch= {
+    url = "github:Kiki-Bouba-Team/niri-switch";
+    # Optional, by default this flake follows the latest nixpkgs-unstable.
+    # ---
+    # Note that setting this will make it follow your version of nixpkgs, which
+    # can lead to issue if you lock it to nixpkgs stable. If you don't add this
+    # line, the derivation will be bigger, but will work Out Of the Box.
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+  # ---Snip---
+}
+```
+
+Then you can install niri-switch by adding the package provided by this flake in your configuration, for example:
+
+```nix
+{inputs, pkgs, ...}:
+let
+  inherit (pkgs.stdenv.hostPlatform) system;
+in
+{
+    environment.systemPackages = [
+        inputs.niri-switch.${system}.default
+    ];
+}
+```
+
+> [!NOTE]
+> This example only works if you can access `inputs` as an extra argument in your configuration. 
+
 ### Other distributions
 
 On other distributions you will need `cargo` - the Rust build system. It's usually installed via [rustup](https://www.rust-lang.org/tools/install).
