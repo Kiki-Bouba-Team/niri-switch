@@ -3,7 +3,11 @@ use clap::Parser;
 
 #[derive(Parser)]
 #[command(version)]
-struct CliArgs;
+struct CliArgs {
+    /// Move selection to the previous window in the overlay
+    #[arg(short, long)]
+    previous: bool,
+}
 
 #[zbus::proxy(
     default_service = "org.kikibouba.NiriSwitchDaemon",
@@ -12,10 +16,11 @@ struct CliArgs;
 )]
 trait NiriSwitchDaemon {
     fn activate(&self) -> zbus::Result<()>;
+    fn previous(&self) -> zbus::Result<()>;
 }
 
 fn main() {
-    let _args = CliArgs::parse();
+    let args = CliArgs::parse();
 
     /* Connect to D-Bus session */
     let result = zbus::blocking::Connection::session();
@@ -37,8 +42,12 @@ fn main() {
         }
     };
 
-    /* Call activate method on the daemon interface */
-    let result = proxy.activate();
+    /* Call correct method on the daemon interface based on the args value */
+    let result = if args.previous {
+        proxy.previous()
+    } else {
+        proxy.activate()
+    };
     match result {
         Ok(_) => (),
         Err(error) => {

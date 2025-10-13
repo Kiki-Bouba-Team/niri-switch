@@ -6,6 +6,7 @@ const DBUS_DAEMON_PATH: &str = "/org/kikibouba/NiriSwitchDaemon";
 
 pub enum DbusEvent {
     Activate,
+    Previous,
 }
 
 struct NiriSwitchDaemonInterface {
@@ -19,6 +20,13 @@ impl NiriSwitchDaemonInterface {
     async fn activate(&self) {
         self.gtk_channel
             .send(DbusEvent::Activate)
+            .await
+            .expect("Sending message should succeed");
+    }
+
+    async fn previous(&self) {
+        self.gtk_channel
+            .send(DbusEvent::Previous)
             .await
             .expect("Sending message should succeed");
     }
