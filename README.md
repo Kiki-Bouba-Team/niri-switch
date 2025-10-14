@@ -59,7 +59,7 @@ let
 in
 {
     environment.systemPackages = [
-        inputs.niri-switch.${system}.default
+        inputs.niri-switch.packages.${system}.default
     ];
 }
 ```

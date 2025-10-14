@@ -34,7 +34,7 @@ rustPlatform.buildRustPackage {
     license = licenses.gpl3Plus;
     homepage = "https://github.com/Kiki-Bouba-Team/niri-switch";
     maintainers = [maintainers.cezaryswitala];
-    mainProgram = "niri-switch";
+    mainProgram = "niri-switch-daemon";
     platforms = platforms.linux;
   };
 }
