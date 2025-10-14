@@ -22,12 +22,13 @@ The [niri-switch](https://aur.archlinux.org/packages/niri-switch) package is ava
 ```sh
 paru -S niri-switch
 ```
-<details>
-<summary>Installing on NixOS With Flakes</summary>
 
 ### NixOS (Flake)
 
 This repository provides a flake you can use to install the package.
+
+<details>
+<summary>Show detailed instructions</summary>
 
 To install it you **must have flake enabled** and your NixOS configuration
 **must be managed with flakes.** See [https://nixos.wiki/wiki/Flakes](https://nixos.wiki/wiki/Flakes) for
@@ -65,7 +66,7 @@ in
     ];
 }
 ```
-This example only works if you can access `inputs` as an extra argument in your configuration. 
+This example only works if you can access `inputs` as an extra argument in your configuration.
 
 </details>
 
