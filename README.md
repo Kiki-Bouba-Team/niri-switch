@@ -65,9 +65,7 @@ in
     ];
 }
 ```
-
-> [!NOTE]
-> This example only works if you can access `inputs` as an extra argument in your configuration. 
+This example only works if you can access `inputs` as an extra argument in your configuration. 
 
 </details>
 
