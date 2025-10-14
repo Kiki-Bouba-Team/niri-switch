@@ -22,6 +22,8 @@ The [niri-switch](https://aur.archlinux.org/packages/niri-switch) package is ava
 ```sh
 paru -S niri-switch
 ```
+<details>
+<summary>Installing on NixOS With Flakes</summary>
 
 ### NixOS (Flake)
 
@@ -66,6 +68,8 @@ in
 
 > [!NOTE]
 > This example only works if you can access `inputs` as an extra argument in your configuration. 
+
+</details>
 
 ### Other distributions
 
