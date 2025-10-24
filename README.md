@@ -31,7 +31,7 @@ This repository provides a flake you can use to install the package.
 <summary>Show detailed instructions</summary>
 
 To install it you **must have flake enabled** and your NixOS configuration
-**must be managed with flakes.** See [https://nixos.wiki/wiki/Flakes](https://nixos.wiki/wiki/Flakes) for
+**must be managed with flakes.** See [https://wiki.nixos.org/wiki/Flakes](https://wiki.nixos.org/wiki/Flakes) for
 instructions on how to install and enable them on NixOS.
 
 Next, you can add this flake as inputs in `flake.nix` in the repository
