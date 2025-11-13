@@ -7,6 +7,7 @@ use super::dbus;
 use super::niri_socket::NiriSocket;
 
 use gio::prelude::*;
+use gtk4::subclass::prelude::*;
 use glib::closure_local;
 use gtk4::glib::clone;
 use gtk4::prelude::*;
@@ -15,8 +16,8 @@ use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex},
 };
-use window_list::Direction;
-use window_list::WindowList;
+use window_list::{Direction, WindowList};
+use window_list::WindowInfo;
 
 /* Type aliases to make signatures more readable */
 type GlobalStoreRef = Arc<Mutex<store::GlobalStore>>;
@@ -34,6 +35,17 @@ fn handle_key_pressed(key: gdk4::Key, window_ref: &WindowWeakRef) -> glib::Propa
         window.close();
     }
     glib::Propagation::Proceed
+}
+
+fn handle_key_released(key: gdk4::Key, list: &WindowList) {
+    if key == gdk4::Key::Alt_L {
+        let imp = list.imp();
+        if let Some(selection_model) = imp.list.model().and_then(|m| m.downcast::<gtk4::SingleSelection>().ok()) {
+            if let Some(selected_item) = selection_model.selected_item().and_then(|i| i.downcast::<WindowInfo>().ok()) {
+                list.emit_by_name::<()>("window-selected", &[&selected_item.id()]);
+            }
+        }
+    }
 }
 
 /// Updates the cached window list with new windows, and remove the old ones
@@ -199,6 +211,11 @@ fn activate(application: &gtk4::Application, global_store: &GlobalStoreRef) {
     let keyboard_controller = gtk4::EventControllerKey::new();
     keyboard_controller
         .connect_key_pressed(move |_, key, _, _| handle_key_pressed(key, &window_ref));
+    keyboard_controller.connect_key_released(clone!(
+        #[weak]
+        window_list,
+        move |_, key, _, _| handle_key_released(key, &window_list)
+    ));
 
     window.add_controller(keyboard_controller);
 
