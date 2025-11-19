@@ -109,7 +109,7 @@ To enable switching to the previous window (similar to `Alt+Shift+Tab` in other 
 ```kdl
 binds {
     // Append this line to the existing binds section
-    Alt+Shft+Tab { spawn "niri-switch" "--previous"; }
+    Alt+Shift+Tab { spawn "niri-switch" "--previous"; }
 }
 ```
 
