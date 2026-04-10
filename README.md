@@ -1,3 +1,6 @@
+> [!NOTE]  
+> Since new versions of niri compositor have native Alt+Tab functionality built in, I will no longer maintain this project.
+
 # niri-switch - A niri task switcher
 
 niri-switch implements fast task switching for the [niri](https://github.com/YaLTeR/niri) compositor. It aims to provide functionality similar to the Alt-Tab known from Windows, Gnome, KDE Plasma and many other desktop environments.
