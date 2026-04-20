@@ -7,7 +7,7 @@ use gtk4::glib;
 use gtk4::subclass::prelude::*;
 use gtk4::{SingleSelection, prelude::*};
 use niri_ipc::Window;
-use window_info::WindowInfo;
+pub use window_info::WindowInfo;
 
 /* Here we create custom widget for displaying window info by
  * subclassing gtk4::Box */
